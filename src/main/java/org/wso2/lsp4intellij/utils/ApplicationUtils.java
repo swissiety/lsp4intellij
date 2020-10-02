@@ -16,7 +16,6 @@
 package org.wso2.lsp4intellij.utils;
 
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.project.NoAccessDuringPsiEvents;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.Condition;

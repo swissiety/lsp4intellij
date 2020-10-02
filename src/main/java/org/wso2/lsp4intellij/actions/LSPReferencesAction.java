@@ -107,7 +107,7 @@ public class LSPReferencesAction extends DumbAwareAction {
             UsageViewPresentation presentation = createPresentation(targets.get(0).getElement(),
                     new FindUsagesOptions(editor.getProject()), false);
             UsageViewManager.getInstance(project)
-                    .showUsages(new UsageTarget[] { targets.get(0) }, usages.toArray(new Usage[usages.size()]),
+                    .showUsages(new UsageTarget[]{targets.get(0)}, usages.toArray(new Usage[0]),
                             presentation);
         }
     }

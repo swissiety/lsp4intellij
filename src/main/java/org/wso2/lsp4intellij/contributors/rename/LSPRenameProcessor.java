@@ -70,7 +70,6 @@ public class LSPRenameProcessor extends RenamePsiElementProcessor {
 
     // Todo - remove and change the minimum compatible version to IDEA 2019.2, once this deprecated method is removed.
     @NotNull
-    @SuppressWarnings("unused")
     public Collection<PsiReference> findReferences(@NotNull PsiElement element, boolean searchInCommentsAndStrings) {
         if (element instanceof LSPPsiElement) {
             if (elements.contains(element)) {
@@ -90,7 +89,6 @@ public class LSPRenameProcessor extends RenamePsiElementProcessor {
     }
 
     @NotNull
-    @SuppressWarnings("unused")
     public Collection<PsiReference> findReferences(@NotNull PsiElement element, @NotNull SearchScope searchScope,
                                                    boolean searchInCommentsAndStrings) {
         if (element instanceof LSPPsiElement) {

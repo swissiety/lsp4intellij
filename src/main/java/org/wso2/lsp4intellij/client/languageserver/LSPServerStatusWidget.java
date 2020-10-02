@@ -107,7 +107,7 @@ public class LSPServerStatusWidget implements StatusBarWidget {
         }
     }
 
-    // this method will be removed from the API in 2020.2
+    // TODO: this method will be removed from the API in 2020.2
     public IconPresentation getPresentation(@NotNull PlatformType type) {
         return new IconPresentation();
     }

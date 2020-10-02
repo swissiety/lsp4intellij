@@ -68,7 +68,7 @@ public class LSPNavigationItem extends OpenFileDescriptor implements NavigationI
         return Objects.hash(this.getLine(), this.getColumn(), this.getName());
     }
 
-    private class LSPItemPresentation implements ItemPresentation {
+    private static class LSPItemPresentation implements ItemPresentation {
 
         private String location;
         private String presentableText;

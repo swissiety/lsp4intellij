@@ -153,10 +153,8 @@ class LSPFileEventManager {
         if (uri == null) {
             return;
         }
-        ApplicationUtils.invokeAfterPsiEvents(() -> {
-            FileUtils.findProjectsFor(file).forEach(p -> changedConfiguration(uri,
-                FileUtils.projectToUri(p), FileChangeType.Deleted));
-        });
+        ApplicationUtils.invokeAfterPsiEvents(() -> FileUtils.findProjectsFor(file).forEach(p -> changedConfiguration(uri,
+                FileUtils.projectToUri(p), FileChangeType.Deleted)));
     }
 
     /**
@@ -229,10 +227,8 @@ class LSPFileEventManager {
         }
         String uri = FileUtils.VFSToURI(file);
         if (uri != null) {
-            ApplicationUtils.invokeAfterPsiEvents(() -> {
-                FileUtils.findProjectsFor(file).forEach(p -> changedConfiguration(uri,
-                    FileUtils.projectToUri(p), FileChangeType.Created));
-            });
+            ApplicationUtils.invokeAfterPsiEvents(() -> FileUtils.findProjectsFor(file).forEach(p -> changedConfiguration(uri,
+                    FileUtils.projectToUri(p), FileChangeType.Created)));
         }
     }
 

@@ -86,7 +86,7 @@ public class WorkspaceEditHandler {
                     } catch (MalformedURLException | URISyntaxException e) {
                         LOG.warn(e);
                     }
-                    if (edits.keySet().contains(uri)) {
+                    if (edits.containsKey(uri)) {
                         edits.get(uri).add(edit);
                     } else {
                         List<TextEdit> textEdits = new ArrayList<>();

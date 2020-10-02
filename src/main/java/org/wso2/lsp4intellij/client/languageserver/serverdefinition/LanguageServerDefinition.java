@@ -49,14 +49,12 @@ public class LanguageServerDefinition {
      */
     public Pair<InputStream, OutputStream> start(String workingDir) throws IOException {
         StreamConnectionProvider streamConnectionProvider = streamConnectionProviders.get(workingDir);
-        if (streamConnectionProvider != null) {
-            return new ImmutablePair<>(streamConnectionProvider.getInputStream(), streamConnectionProvider.getOutputStream());
-        } else {
+        if (streamConnectionProvider == null) {
             streamConnectionProvider = createConnectionProvider(workingDir);
             streamConnectionProvider.start();
             streamConnectionProviders.put(workingDir, streamConnectionProvider);
-            return new ImmutablePair<>(streamConnectionProvider.getInputStream(), streamConnectionProvider.getOutputStream());
         }
+        return new ImmutablePair<>(streamConnectionProvider.getInputStream(), streamConnectionProvider.getOutputStream());
     }
 
     /**
