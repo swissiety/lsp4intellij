@@ -15,6 +15,7 @@
  */
 package org.wso2.lsp4intellij.utils;
 
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
@@ -101,8 +102,9 @@ public class FileUtils {
     public static void reloadEditors(@NotNull Project project) {
         try {
             List<Editor> allOpenedEditors = FileUtils.getAllOpenedEditors(project);
-            allOpenedEditors.forEach(IntellijLanguageClient::editorClosed);
-            allOpenedEditors.forEach(IntellijLanguageClient::editorOpened);
+            final IntellijLanguageClient service = ServiceManager.getService(IntellijLanguageClient.class);
+            allOpenedEditors.forEach(service::editorClosed);
+            allOpenedEditors.forEach(service::editorOpened);
         } catch (Exception e) {
             LOG.warn(String.format("Refreshing project: %s is failed due to: ", project.getName()), e);
         }
@@ -296,7 +298,7 @@ public class FileUtils {
             return false;
         }
 
-        return IntellijLanguageClient.isExtensionSupported(file);
+        return ServiceManager.getService(IntellijLanguageClient.class).isExtensionSupported(file);
     }
 
     /**
@@ -338,7 +340,7 @@ public class FileUtils {
             if (file == null) {
                 return true;
             }
-            LSPExtensionManager lspExtManager = IntellijLanguageClient.getExtensionManagerFor(file.getVirtualFile().getExtension());
+            LSPExtensionManager lspExtManager = ServiceManager.getService(IntellijLanguageClient.class).getExtensionManagerFor(file.getVirtualFile().getExtension());
             if (lspExtManager == null) {
                 return true;
             }

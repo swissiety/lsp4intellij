@@ -18,7 +18,7 @@ package org.wso2.lsp4intellij;
 import com.intellij.AppTopics;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.components.ApplicationComponent;
+import com.intellij.openapi.components.Service;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
@@ -55,17 +55,17 @@ import static org.wso2.lsp4intellij.utils.ApplicationUtils.pool;
 import static org.wso2.lsp4intellij.utils.FileUtils.reloadAllEditors;
 import static org.wso2.lsp4intellij.utils.FileUtils.reloadEditors;
 
-public class IntellijLanguageClient implements ApplicationComponent, Disposable {
+@Service
+public final class IntellijLanguageClient implements Disposable {
 
-    private static Logger LOG = Logger.getInstance(IntellijLanguageClient.class);
-    private static final Map<Pair<String, String>, LanguageServerWrapper> extToLanguageWrapper = new ConcurrentHashMap<>();
-    private static Map<String, Set<LanguageServerWrapper>> projectToLanguageWrappers = new ConcurrentHashMap<>();
-    private static Map<Pair<String, String>, LanguageServerDefinition> extToServerDefinition = new ConcurrentHashMap<>();
-    private static Map<String, LSPExtensionManager> extToExtManager = new ConcurrentHashMap<>();
-    private static final Predicate<LanguageServerWrapper> RUNNING = (s) -> s.getStatus() != ServerStatus.STOPPED;
+    private final Logger LOG = Logger.getInstance(IntellijLanguageClient.class);
+    private final Map<Pair<String, String>, LanguageServerWrapper> extToLanguageWrapper = new ConcurrentHashMap<>();
+    private final Map<String, Set<LanguageServerWrapper>> projectToLanguageWrappers = new ConcurrentHashMap<>();
+    private final Map<Pair<String, String>, LanguageServerDefinition> extToServerDefinition = new ConcurrentHashMap<>();
+    private final Map<String, LSPExtensionManager> extToExtManager = new ConcurrentHashMap<>();
+    private final Predicate<LanguageServerWrapper> RUNNING = (s) -> s.getStatus() != ServerStatus.STOPPED;
 
-    @Override
-    public void initComponent() {
+    public void init() {
         try {
             // Adds project listener.
             ApplicationManager.getApplication().getMessageBus().connect().subscribe(ProjectManager.TOPIC,
@@ -96,7 +96,7 @@ public class IntellijLanguageClient implements ApplicationComponent, Disposable 
      * @param definition The server definition
      */
     @SuppressWarnings("unused")
-    public static void addServerDefinition(@NotNull LanguageServerDefinition definition) {
+    public void addServerDefinition(@NotNull LanguageServerDefinition definition) {
         addServerDefinition(definition, null);
     }
 
@@ -107,7 +107,7 @@ public class IntellijLanguageClient implements ApplicationComponent, Disposable 
      * @param definition The server definition
      */
     @SuppressWarnings("unused")
-    public static void addServerDefinition(@NotNull LanguageServerDefinition definition, @Nullable Project project) {
+    public void addServerDefinition(@NotNull LanguageServerDefinition definition, @Nullable Project project) {
         if (project != null) {
             processDefinition(definition, FileUtils.projectToUri(project));
             reloadEditors(project);
@@ -126,7 +126,7 @@ public class IntellijLanguageClient implements ApplicationComponent, Disposable 
      * @param manager LSP extension manager (Should be implemented by the developer)
      */
     @SuppressWarnings("unused")
-    public static void addExtensionManager(@NotNull String ext, @NotNull LSPExtensionManager manager) {
+    public void addExtensionManager(@NotNull String ext, @NotNull LSPExtensionManager manager) {
         if (extToExtManager.get(ext) != null) {
             LOG.warn("An extension manager is already registered for \"" + ext + "\" extension");
         }
@@ -136,7 +136,7 @@ public class IntellijLanguageClient implements ApplicationComponent, Disposable 
     /**
      * @return All instantiated ServerWrappers
      */
-    public static Set<LanguageServerWrapper> getAllServerWrappersFor(String projectUri) {
+    public Set<LanguageServerWrapper> getAllServerWrappersFor(String projectUri) {
         Set<LanguageServerWrapper> allWrappers = new HashSet<>();
         extToLanguageWrapper.forEach((stringStringPair, languageServerWrapper) -> {
             if (FileUtils.projectToUri(languageServerWrapper.getProject()).equals(projectUri)) {
@@ -149,7 +149,7 @@ public class IntellijLanguageClient implements ApplicationComponent, Disposable 
     /**
      * @return All registered LSP protocol extension managers.
      */
-    public static LSPExtensionManager getExtensionManagerFor(String fileExt) {
+    public LSPExtensionManager getExtensionManagerFor(String fileExt) {
         if (extToExtManager.containsKey(fileExt)) {
             return extToExtManager.get(fileExt);
         }
@@ -160,7 +160,7 @@ public class IntellijLanguageClient implements ApplicationComponent, Disposable 
      * @param virtualFile The virtual file instance to be validated
      * @return True if there is a LanguageServer supporting this extension, false otherwise
      */
-    public static boolean isExtensionSupported(VirtualFile virtualFile) {
+    public boolean isExtensionSupported(VirtualFile virtualFile) {
         return extToServerDefinition.keySet().stream().anyMatch(keyMap ->
                 keyMap.getLeft().equals(virtualFile.getExtension()) || (virtualFile.getName().matches(keyMap.getLeft())));
     }
@@ -170,7 +170,7 @@ public class IntellijLanguageClient implements ApplicationComponent, Disposable 
      *
      * @param editor the editor
      */
-    public static void editorOpened(Editor editor) {
+    public void editorOpened(Editor editor) {
         VirtualFile file = FileDocumentManager.getInstance().getFile(editor.getDocument());
         if (!FileUtils.isFileSupported(file)) {
             LOG.debug("Handling open on a editor which host a LightVirtual/Null file");
@@ -260,7 +260,7 @@ public class IntellijLanguageClient implements ApplicationComponent, Disposable 
      *
      * @param editor the editor.
      */
-    public static void editorClosed(Editor editor) {
+    public void editorClosed(Editor editor) {
         VirtualFile file = FileDocumentManager.getInstance().getFile(editor.getDocument());
         if (!FileUtils.isFileSupported(file)) {
             LOG.debug("Handling close on a editor which host a LightVirtual/Null file");
@@ -281,7 +281,7 @@ public class IntellijLanguageClient implements ApplicationComponent, Disposable 
      *
      * @return A map of Timeout types and corresponding values(in milliseconds).
      */
-    public static Map<Timeouts, Integer> getTimeouts() {
+    public Map<Timeouts, Integer> getTimeouts() {
         return Timeout.getTimeouts();
     }
 
@@ -291,7 +291,7 @@ public class IntellijLanguageClient implements ApplicationComponent, Disposable 
      * @return A map of Timeout types and corresponding values(in milliseconds).
      */
     @SuppressWarnings("unused")
-    public static int getTimeout(Timeouts timeoutType) {
+    public int getTimeout(Timeouts timeoutType) {
         return getTimeouts().get(timeoutType);
     }
 
@@ -300,7 +300,7 @@ public class IntellijLanguageClient implements ApplicationComponent, Disposable 
      *
      * @param newTimeouts A map of Timeout types and corresponding values to be set.
      */
-    public static void setTimeouts(Map<Timeouts, Integer> newTimeouts) {
+    public void setTimeouts(Map<Timeouts, Integer> newTimeouts) {
         Timeout.setTimeouts(newTimeouts);
     }
 
@@ -309,13 +309,13 @@ public class IntellijLanguageClient implements ApplicationComponent, Disposable 
      * @param value   new timeout value to be set (in milliseconds).
      */
     @SuppressWarnings("unused")
-    public static void setTimeout(Timeouts timeout, int value) {
+    public void setTimeout(Timeouts timeout, int value) {
         Map<Timeouts, Integer> newTimeout = new HashMap<>();
         newTimeout.put(timeout, value);
         setTimeouts(newTimeout);
     }
 
-    public static void removeWrapper(LanguageServerWrapper wrapper) {
+    public  void removeWrapper(LanguageServerWrapper wrapper) {
         if (wrapper.getProject() != null) {
             String[] extensions = wrapper.getServerDefinition().ext.split(LanguageServerDefinition.SPLIT_CHAR);
             for (String ext : extensions) {
@@ -327,13 +327,13 @@ public class IntellijLanguageClient implements ApplicationComponent, Disposable 
         }
     }
 
-    public static Map<String, Set<LanguageServerWrapper>> getProjectToLanguageWrappers() {
+    public  Map<String, Set<LanguageServerWrapper>> getProjectToLanguageWrappers() {
         return projectToLanguageWrappers;
     }
 
     @SuppressWarnings("unused")
-    public static void didChangeConfiguration(@NotNull DidChangeConfigurationParams params, @NotNull Project project) {
-        final Set<LanguageServerWrapper> serverWrappers = IntellijLanguageClient.getProjectToLanguageWrappers()
+    public void didChangeConfiguration(@NotNull DidChangeConfigurationParams params, @NotNull Project project) {
+        final Set<LanguageServerWrapper> serverWrappers = getProjectToLanguageWrappers()
                 .get(FileUtils.projectToUri(project));
         serverWrappers.forEach(s -> s.getRequestManager().didChangeConfiguration(params));
     }
@@ -343,13 +343,8 @@ public class IntellijLanguageClient implements ApplicationComponent, Disposable 
      *
      * @param definition The LanguageServerDefinition
      */
-    public static Optional<LSPExtensionManager> getExtensionManagerForDefinition(@NotNull LanguageServerDefinition definition) {
+    public Optional<LSPExtensionManager> getExtensionManagerForDefinition(@NotNull LanguageServerDefinition definition) {
         return Optional.ofNullable(extToExtManager.get(definition.ext.split(",")[0]));
-    }
-
-    @Override
-    public void disposeComponent() {
-        Disposer.dispose(this);
     }
 
     @Override
@@ -357,7 +352,7 @@ public class IntellijLanguageClient implements ApplicationComponent, Disposable 
         Disposer.dispose(this);
     }
 
-    private static void processDefinition(LanguageServerDefinition definition, String projectUri) {
+    private  void processDefinition(LanguageServerDefinition definition, String projectUri) {
         String[] extensions = definition.ext.split(LanguageServerDefinition.SPLIT_CHAR);
         for (String ext : extensions) {
             Pair<String, String> keyPair = new ImmutablePair<>(ext, projectUri);

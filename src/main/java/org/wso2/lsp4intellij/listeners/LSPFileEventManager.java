@@ -15,6 +15,7 @@
  */
 package org.wso2.lsp4intellij.listeners;
 
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
@@ -123,10 +124,8 @@ class LSPFileEventManager {
 
                 FileUtils.findProjectsFor(file).forEach(p -> {
                     // Detaches old file from the wrappers.
-                    Set<LanguageServerWrapper> wrappers = IntellijLanguageClient.getAllServerWrappersFor(FileUtils.projectToUri(p));
-                    if (wrappers != null) {
-                        wrappers.forEach(wrapper -> wrapper.disconnect(oldFileUri, FileUtils.projectToUri(p)));
-                    }
+                    Set<LanguageServerWrapper> wrappers = ServiceManager.getService(IntellijLanguageClient.class).getAllServerWrappersFor(FileUtils.projectToUri(p));
+                    wrappers.forEach(wrapper -> wrapper.disconnect(oldFileUri, FileUtils.projectToUri(p)));
                     // Re-open file to so that the new editor will be connected to the language server.
                     FileEditorManager fileEditorManager = FileEditorManager.getInstance(p);
                     ApplicationUtils.invokeLater(() -> {
@@ -188,18 +187,16 @@ class LSPFileEventManager {
 
                     FileUtils.findProjectsFor(file).forEach(p -> {
                         // Detaches old file from the wrappers.
-                        Set<LanguageServerWrapper> wrappers = IntellijLanguageClient.getAllServerWrappersFor(FileUtils.projectToUri(p));
-                        if (wrappers != null) {
-                            wrappers.forEach(wrapper -> {
-                                // make these calls first since the disconnect might stop the LS client if its last file.
-                                wrapper.getRequestManager().didChangeWatchedFiles(
+                        Set<LanguageServerWrapper> wrappers = ServiceManager.getService(IntellijLanguageClient.class).getAllServerWrappersFor(FileUtils.projectToUri(p));
+                        wrappers.forEach(wrapper -> {
+                            // make these calls first since the disconnect might stop the LS client if its last file.
+                            wrapper.getRequestManager().didChangeWatchedFiles(
                                     getDidChangeWatchedFilesParams(oldFileUri, FileChangeType.Deleted));
-                                wrapper.getRequestManager().didChangeWatchedFiles(
+                            wrapper.getRequestManager().didChangeWatchedFiles(
                                     getDidChangeWatchedFilesParams(newFileUri, FileChangeType.Created));
 
-                                wrapper.disconnect(oldFileUri, FileUtils.projectToUri(p));
-                            });
-                        }
+                            wrapper.disconnect(oldFileUri, FileUtils.projectToUri(p));
+                        });
                         if (!newFileUri.equals(oldFileUri)) {
                             // Re-open file to so that the new editor will be connected to the language server.
                             FileEditorManager fileEditorManager = FileEditorManager.getInstance(p);
@@ -235,10 +232,7 @@ class LSPFileEventManager {
     private static void changedConfiguration(String uri, String projectUri, FileChangeType typ) {
         ApplicationUtils.pool(() -> {
             DidChangeWatchedFilesParams params = getDidChangeWatchedFilesParams(uri, typ);
-            Set<LanguageServerWrapper> wrappers = IntellijLanguageClient.getAllServerWrappersFor(projectUri);
-            if (wrappers == null) {
-                return;
-            }
+            Set<LanguageServerWrapper> wrappers = ServiceManager.getService(IntellijLanguageClient.class).getAllServerWrappersFor(projectUri);
             for (LanguageServerWrapper wrapper : wrappers) {
                 if (wrapper.getRequestManager() != null
                         && wrapper.getStatus() == ServerStatus.INITIALIZED) {

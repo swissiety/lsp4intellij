@@ -20,6 +20,7 @@ import com.intellij.codeInsight.template.impl.TemplateState;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.command.impl.StartMarkAction;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
@@ -127,7 +128,7 @@ public class LSPRenameHandler implements RenameHandler {
         if (psiElement instanceof PsiFile || psiElement instanceof LSPPsiElement) {
             return true;
         } else {
-            return IntellijLanguageClient.isExtensionSupported(psiFile.getVirtualFile());
+            return ServiceManager.getService(IntellijLanguageClient.class).isExtensionSupported(psiFile.getVirtualFile());
         }
     }
 

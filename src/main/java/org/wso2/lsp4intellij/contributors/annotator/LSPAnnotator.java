@@ -18,6 +18,7 @@ package org.wso2.lsp4intellij.contributors.annotator;
 import com.intellij.lang.annotation.Annotation;
 import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.ExternalAnnotator;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.util.TextRange;
@@ -49,7 +50,7 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
             VirtualFile virtualFile = file.getVirtualFile();
 
             // If the file is not supported, we skips the annotation by returning null.
-            if (!FileUtils.isFileSupported(virtualFile) || !IntellijLanguageClient.isExtensionSupported(virtualFile)) {
+            if (!FileUtils.isFileSupported(virtualFile) || !ServiceManager.getService(IntellijLanguageClient.class).isExtensionSupported(virtualFile)) {
                 return null;
             }
             String uri = FileUtils.VFSToURI(virtualFile);
@@ -75,7 +76,7 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
     public void apply(@NotNull PsiFile file, Object annotationResult, @NotNull AnnotationHolder holder) {
 
         VirtualFile virtualFile = file.getVirtualFile();
-        if (FileUtils.isFileSupported(virtualFile) && IntellijLanguageClient.isExtensionSupported(virtualFile)) {
+        if (FileUtils.isFileSupported(virtualFile) && ServiceManager.getService(IntellijLanguageClient.class).isExtensionSupported(virtualFile)) {
             String uri = FileUtils.VFSToURI(virtualFile);
             EditorEventManager eventManager = EditorEventManagerBase.forUri(uri);
             if (eventManager == null) {

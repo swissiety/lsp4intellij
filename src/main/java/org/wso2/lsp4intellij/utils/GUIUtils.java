@@ -18,6 +18,7 @@ package org.wso2.lsp4intellij.utils;
 import com.intellij.codeInsight.hint.HintManager;
 import com.intellij.codeInsight.hint.HintManagerImpl;
 import com.intellij.ide.browsers.BrowserLauncher;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
@@ -118,7 +119,7 @@ public final class GUIUtils {
      * @return The LSPIconProvider, or LSPDefaultIconProvider if none are found
      */
     public static LSPIconProvider getIconProviderFor(LanguageServerDefinition serverDefinition) {
-        return IntellijLanguageClient.getExtensionManagerForDefinition(serverDefinition)
+        return ServiceManager.getService(IntellijLanguageClient.class).getExtensionManagerForDefinition(serverDefinition)
                 .map(LSPExtensionManager::getIconProvider).orElse(DEFAULT_ICON_PROVIDER);
     }
 
@@ -129,7 +130,7 @@ public final class GUIUtils {
      * @return The LSPLabelProvider, or the default if none are found
      */
     public static LSPLabelProvider getLabelProviderFor(LanguageServerDefinition serverDefinition) {
-        return IntellijLanguageClient.getExtensionManagerForDefinition(serverDefinition)
+        return ServiceManager.getService(IntellijLanguageClient.class).getExtensionManagerForDefinition(serverDefinition)
                 .map(LSPExtensionManager::getLabelProvider).orElse(DEFAULT_LABEL_PROVIDER);
     }
 

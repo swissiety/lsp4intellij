@@ -22,6 +22,7 @@ import com.intellij.codeInsight.actions.TextRangeType;
 import com.intellij.lang.LanguageFormatting;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
@@ -51,7 +52,7 @@ public class LSPShowReformatDialogAction extends ShowReformatFileDialog implemen
             PsiFile psiFile = PsiDocumentManager.getInstance(project).getPsiFile(editor.getDocument());
             VirtualFile virFile = FileDocumentManager.getInstance().getFile(editor.getDocument());
             boolean alreadySupported = !LanguageFormatting.INSTANCE.allForLanguage(psiFile.getLanguage()).isEmpty();
-            if (!alreadySupported && IntellijLanguageClient.isExtensionSupported(virFile)) {
+            if (!alreadySupported && ServiceManager.getService(IntellijLanguageClient.class).isExtensionSupported(virFile)) {
                 boolean hasSelection = editor.getSelectionModel().hasSelection();
                 LayoutCodeDialog dialog = new LayoutCodeDialog(project, psiFile, hasSelection, HELP_ID);
                 dialog.show();

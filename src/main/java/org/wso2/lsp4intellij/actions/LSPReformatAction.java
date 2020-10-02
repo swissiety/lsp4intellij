@@ -19,6 +19,7 @@ import com.intellij.codeInsight.actions.ReformatCodeAction;
 import com.intellij.lang.LanguageFormatting;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.DumbAware;
@@ -43,7 +44,7 @@ public class LSPReformatAction extends ReformatCodeAction implements DumbAware {
             return;
         }
         PsiFile file = PsiDocumentManager.getInstance(project).getPsiFile(editor.getDocument());
-        if (LanguageFormatting.INSTANCE.allForLanguage(file.getLanguage()).isEmpty() && IntellijLanguageClient
+        if (LanguageFormatting.INSTANCE.allForLanguage(file.getLanguage()).isEmpty() && ServiceManager.getService(IntellijLanguageClient.class)
                 .isExtensionSupported(file.getVirtualFile())) {
             // if editor hasSelection, only reformat selection, not reformat the whole file
             if (editor.getSelectionModel().hasSelection()) {

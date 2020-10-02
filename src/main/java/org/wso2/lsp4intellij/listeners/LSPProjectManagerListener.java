@@ -15,6 +15,7 @@
  */
 package org.wso2.lsp4intellij.listeners;
 
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManagerListener;
@@ -37,9 +38,9 @@ public class LSPProjectManagerListener implements ProjectManagerListener {
         // Removes all the attached LSP status widgets before closing a project. Otherwise the old status widget will
         // not be removed when opening a new project in the same project window.
         try {
-            IntellijLanguageClient.getProjectToLanguageWrappers().get(FileUtils.projectToUri(project)).forEach(wrapper -> {
+            ServiceManager.getService(IntellijLanguageClient.class).getProjectToLanguageWrappers().get(FileUtils.projectToUri(project)).forEach(wrapper -> {
                 wrapper.removeWidget();
-                IntellijLanguageClient.removeWrapper(wrapper);
+                ServiceManager.getService(IntellijLanguageClient.class).removeWrapper(wrapper);
             });
         } catch (Exception e) {
             LOG.warn("Failed to handle LSP project closing event.", e);

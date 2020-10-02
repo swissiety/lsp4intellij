@@ -16,6 +16,7 @@
 package org.wso2.lsp4intellij.client.languageserver.wrapper;
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.fileEditor.FileEditor;
@@ -648,7 +649,7 @@ public class LanguageServerWrapper {
     public void removeServerWrapper() {
         stop(true);
         removeWidget();
-        IntellijLanguageClient.removeWrapper(this);
+        ServiceManager.getService(IntellijLanguageClient.class).removeWrapper(this);
     }
 
     private void connect(String uri) {
