@@ -21,7 +21,12 @@ import com.intellij.notification.Notifications;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.module.Module;
+import com.intellij.openapi.module.ModuleManager;
+import com.intellij.openapi.module.ModuleUtil;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.util.ui.UIUtil;
 import org.eclipse.lsp4j.ApplyWorkspaceEditParams;
@@ -40,6 +45,7 @@ import org.eclipse.lsp4j.UnregistrationParams;
 import org.eclipse.lsp4j.WorkspaceFolder;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.jetbrains.annotations.NotNull;
+import org.wso2.lsp4intellij.IntellijLanguageClient;
 import org.wso2.lsp4intellij.editor.EditorEventManager;
 import org.wso2.lsp4intellij.editor.EditorEventManagerBase;
 import org.wso2.lsp4intellij.requests.WorkspaceEditHandler;
@@ -60,12 +66,15 @@ import javax.swing.Icon;
 
 public class DefaultLanguageClient implements LanguageClient {
 
-    private Logger LOG = Logger.getInstance(DefaultLanguageClient.class);
-    private Map<String, DynamicRegistrationMethods> registrations = new ConcurrentHashMap<>();
-    private ClientContext context;
+    @NotNull
+    final private Logger LOG = Logger.getInstance(DefaultLanguageClient.class);
+    @NotNull
+    final private Map<String, DynamicRegistrationMethods> registrations = new ConcurrentHashMap<>();
+    @NotNull
+    private final ClientContext context;
     private boolean blocking = false;
 
-    public DefaultLanguageClient(ClientContext context) {
+    public DefaultLanguageClient(@NotNull ClientContext context) {
         this.context = context;
     }
 
@@ -77,12 +86,21 @@ public class DefaultLanguageClient implements LanguageClient {
 
     @Override
     public CompletableFuture<List<Object>> configuration(ConfigurationParams configurationParams) {
-        return LanguageClient.super.configuration(configurationParams);
+        return CompletableFuture.completedFuture(ServiceManager.getService(IntellijLanguageClient.class).getConfigParams(configurationParams));
     }
 
     @Override
     public CompletableFuture<List<WorkspaceFolder>> workspaceFolders() {
-        return LanguageClient.super.workspaceFolders();
+        Project project = context.getProject();
+        if (project != null) {
+            @NotNull final Module[] modules = ModuleManager.getInstance(project).getModules();
+            List<WorkspaceFolder> folders = new ArrayList<>(modules.length);
+            for (Module module : modules) {
+                folders.add(new WorkspaceFolder(ModuleUtil.getModuleDirPath(module), module.getName()));
+            }
+            return CompletableFuture.completedFuture(folders);
+        }
+        return CompletableFuture.completedFuture(null);
     }
 
     @Override
@@ -116,8 +134,9 @@ public class DefaultLanguageClient implements LanguageClient {
 
     @Override
     public void telemetryEvent(Object o) {
-        //TODO
+        LOG.info(o.toString());
     }
+
 
     @Override
     public void publishDiagnostics(PublishDiagnosticsParams publishDiagnosticsParams) {

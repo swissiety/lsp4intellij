@@ -28,9 +28,11 @@ import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
+import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.eclipse.lsp4j.ConfigurationParams;
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -352,7 +354,7 @@ public final class IntellijLanguageClient implements Disposable {
         Disposer.dispose(this);
     }
 
-    private  void processDefinition(LanguageServerDefinition definition, String projectUri) {
+    private void processDefinition(LanguageServerDefinition definition, String projectUri) {
         String[] extensions = definition.ext.split(LanguageServerDefinition.SPLIT_CHAR);
         for (String ext : extensions) {
             Pair<String, String> keyPair = new ImmutablePair<>(ext, projectUri);
@@ -364,5 +366,15 @@ public final class IntellijLanguageClient implements Disposable {
                 LOG.info("Updated server definition for " + ext);
             }
         }
+    }
+
+    public void setConfigParams(List<Object> configParams) {
+        // TODO: set it
+        throw new NotImplementedException();
+    }
+
+    public List<Object> getConfigParams(ConfigurationParams configurationParams) {
+        // TODO: filter and return
+        return null;
     }
 }
