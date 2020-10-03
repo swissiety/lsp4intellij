@@ -20,10 +20,6 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.module.Module;
-import com.intellij.openapi.module.ModuleManager;
-import com.intellij.openapi.module.ModuleUtil;
-import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.util.ui.UIUtil;
 import org.eclipse.lsp4j.*;
@@ -74,16 +70,8 @@ public class DefaultLanguageClient implements LanguageClient {
 
     @Override
     public CompletableFuture<List<WorkspaceFolder>> workspaceFolders() {
-        Project project = context.getProject();
-        if (project != null) {
-            @NotNull final Module[] modules = ModuleManager.getInstance(project).getModules();
-            List<WorkspaceFolder> folders = new ArrayList<>(modules.length);
-            for (Module module : modules) {
-                folders.add(new WorkspaceFolder(ModuleUtil.getModuleDirPath(module), module.getName()));
-            }
-            return CompletableFuture.completedFuture(folders);
-        }
-        return CompletableFuture.completedFuture(null);
+        List<WorkspaceFolder> folders = ServiceManager.getService(IntellijLanguageClient.class).getWorkspaceFolderList(context.getProject());
+        return CompletableFuture.completedFuture(folders.isEmpty() ? null : folders);
     }
 
     @Override

@@ -498,6 +498,8 @@ public class LanguageServerWrapper {
     private InitializeParams getInitParams() {
         InitializeParams initParams = new InitializeParams();
         initParams.setRootUri(FileUtils.pathToUri(projectRootPath));
+        initParams.setWorkspaceFolders(ServiceManager.getService(IntellijLanguageClient.class).getWorkspaceFolderList(project));
+
         //TODO update capabilities when implemented
         WorkspaceClientCapabilities workspaceClientCapabilities = new WorkspaceClientCapabilities();
         workspaceClientCapabilities.setApplyEdit(true);
@@ -505,7 +507,7 @@ public class LanguageServerWrapper {
         workspaceClientCapabilities.setExecuteCommand(new ExecuteCommandCapabilities());
         workspaceClientCapabilities.setWorkspaceEdit(new WorkspaceEditCapabilities());
         workspaceClientCapabilities.setSymbol(new SymbolCapabilities());
-        workspaceClientCapabilities.setWorkspaceFolders(false);
+        workspaceClientCapabilities.setWorkspaceFolders(true);
         workspaceClientCapabilities.setConfiguration(false);
 
         TextDocumentClientCapabilities textDocumentClientCapabilities = new TextDocumentClientCapabilities();

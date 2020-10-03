@@ -23,6 +23,9 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
+import com.intellij.openapi.module.Module;
+import com.intellij.openapi.module.ModuleManager;
+import com.intellij.openapi.module.ModuleUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -33,6 +36,7 @@ import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.lsp4j.ConfigurationParams;
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
+import org.eclipse.lsp4j.WorkspaceFolder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.wso2.lsp4intellij.client.languageserver.ServerStatus;
@@ -366,6 +370,20 @@ public final class IntellijLanguageClient implements Disposable {
             }
         }
     }
+
+    @NotNull
+    public List<WorkspaceFolder> getWorkspaceFolderList(Project project) {
+        if (project != null) {
+            @NotNull final Module[] modules = ModuleManager.getInstance(project).getModules();
+            List<WorkspaceFolder> folders = new ArrayList<>(modules.length);
+            for (Module module : modules) {
+                folders.add(new WorkspaceFolder(ModuleUtil.getModuleDirPath(module), module.getName()));
+            }
+            return folders;
+        }
+        return null;
+    }
+
 
     public void setConfigParams(List<Object> configParams) {
         // TODO: set it
