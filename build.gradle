@@ -31,14 +31,6 @@ dependencies {
     testCompile group: 'org.powermock', name: 'powermock-module-junit4', version: '1.6.5'
 }
 
-sourceSets {
-    main {
-        java {
-            srcDirs = ['src/main/java']
-        }
-    }
-}
-
 license {
     header = rootProject.file("resources/license/HEADER.txt")
     ext["year"] = Calendar.getInstance().get(Calendar.YEAR)
