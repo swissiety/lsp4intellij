@@ -30,10 +30,10 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
-import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.eclipse.lsp4j.ConfigurationItem;
 import org.eclipse.lsp4j.ConfigurationParams;
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
 import org.eclipse.lsp4j.WorkspaceFolder;
@@ -69,6 +69,7 @@ public final class IntellijLanguageClient implements Disposable {
     private final Map<Pair<String, String>, LanguageServerDefinition> extToServerDefinition = new ConcurrentHashMap<>();
     private final Map<String, LSPExtensionManager> extToExtManager = new ConcurrentHashMap<>();
     private final Predicate<LanguageServerWrapper> RUNNING = (s) -> s.getStatus() != ServerStatus.STOPPED;
+    private List<Object> configParams;
 
     public void init() {
         try {
@@ -386,12 +387,18 @@ public final class IntellijLanguageClient implements Disposable {
 
 
     public void setConfigParams(List<Object> configParams) {
-        // TODO: set it
-        throw new NotImplementedException();
+        this.configParams = configParams;
     }
 
+
+    List<String> askedConfigScopes = new ArrayList<>();
+
     public List<Object> getConfigParams(ConfigurationParams configurationParams) {
-        // TODO: filter and return
-        return null;
+        final List<ConfigurationItem> items = configurationParams.getItems();
+        for (int i = 0; i < items.size(); i++) {
+            askedConfigScopes.add(items.get(i).getScopeUri());
+        }
+        // TODO: filter -> currently all items are returned
+        return configParams;
     }
 }
