@@ -15,10 +15,7 @@
  */
 package org.wso2.lsp4intellij.client;
 
-import com.intellij.notification.Notification;
-import com.intellij.notification.NotificationType;
-import com.intellij.notification.Notifications;
-import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.notification.*;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.ServiceManager;
@@ -29,20 +26,7 @@ import com.intellij.openapi.module.ModuleUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.util.ui.UIUtil;
-import org.eclipse.lsp4j.ApplyWorkspaceEditParams;
-import org.eclipse.lsp4j.ApplyWorkspaceEditResponse;
-import org.eclipse.lsp4j.ConfigurationParams;
-import org.eclipse.lsp4j.Diagnostic;
-import org.eclipse.lsp4j.MessageActionItem;
-import org.eclipse.lsp4j.MessageParams;
-import org.eclipse.lsp4j.MessageType;
-import org.eclipse.lsp4j.PublishDiagnosticsParams;
-import org.eclipse.lsp4j.RegistrationParams;
-import org.eclipse.lsp4j.SemanticHighlightingParams;
-import org.eclipse.lsp4j.ShowMessageRequestParams;
-import org.eclipse.lsp4j.Unregistration;
-import org.eclipse.lsp4j.UnregistrationParams;
-import org.eclipse.lsp4j.WorkspaceFolder;
+import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.jetbrains.annotations.NotNull;
 import org.wso2.lsp4intellij.IntellijLanguageClient;
@@ -52,27 +36,26 @@ import org.wso2.lsp4intellij.requests.WorkspaceEditHandler;
 import org.wso2.lsp4intellij.utils.ApplicationUtils;
 import org.wso2.lsp4intellij.utils.FileUtils;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import javax.swing.*;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
-
-import javax.swing.Icon;
 
 public class DefaultLanguageClient implements LanguageClient {
 
     @NotNull
     final private Logger LOG = Logger.getInstance(DefaultLanguageClient.class);
     @NotNull
+    private final NotificationGroup STICKY_NOTIFICATION_GROUP =
+            new NotificationGroup("lsp.message.request", NotificationDisplayType.STICKY_BALLOON, false);
+    @NotNull
     final private Map<String, DynamicRegistrationMethods> registrations = new ConcurrentHashMap<>();
     @NotNull
     private final ClientContext context;
-    private boolean blocking = false;
+    private boolean isModal = false;
+
 
     public DefaultLanguageClient(@NotNull ClientContext context) {
         this.context = context;
@@ -153,7 +136,7 @@ public class DefaultLanguageClient implements LanguageClient {
         String title = "Language Server message";
         String message = messageParams.getMessage();
 
-        if (blocking) {
+        if (isModal) {
             ApplicationUtils.invokeLater(() -> {
                 MessageType msgType = messageParams.getType();
                 switch (msgType) {
@@ -175,12 +158,11 @@ public class DefaultLanguageClient implements LanguageClient {
 
         } else {
             NotificationType type = getNotificationType(messageParams.getType());
-            Notifications.Bus.notify(
-                    new Notification(
-                            "lsp", messageParams.getType().toString(), messageParams.getMessage(), type), context.getProject());
+            final Notification notification = new Notification(
+                    "lsp", messageParams.getType().toString(), messageParams.getMessage(), type);
+            notification.notify(context.getProject());
         }
     }
-
 
     @Override
     public CompletableFuture<MessageActionItem> showMessageRequest(ShowMessageRequestParams showMessageRequestParams) {
@@ -197,7 +179,7 @@ public class DefaultLanguageClient implements LanguageClient {
 
         int exitCode = 0;
         FutureTask<Integer> task;
-        if (blocking) {
+        if (isModal) {
             Icon icon;
             if (msgType == MessageType.Error) {
                 icon = UIUtil.getErrorIcon();
@@ -223,20 +205,26 @@ public class DefaultLanguageClient implements LanguageClient {
             }
 
         } else {
-            final Notification notification = new Notification(
-                    "lsp", title, message, getNotificationType(msgType));
 
+            final Notification notification = STICKY_NOTIFICATION_GROUP.createNotification(title, "subtitle", message, getNotificationType(msgType));
             final CompletableFuture<Integer> integerCompletableFuture = new CompletableFuture<>();
             for (int i = 0, optionsSize = options.size(); i < optionsSize; i++) {
                 int finalI = i;
-                notification.addAction(new AnAction(options.get(finalI)) {
+                notification.addAction(new NotificationAction(options.get(finalI)) {
                     @Override
-                    public void actionPerformed(@NotNull AnActionEvent e) {
-                        integerCompletableFuture.complete(finalI);
+                    public boolean isDumbAware() {
+                        return true;
                     }
+
+                    @Override
+                    public void actionPerformed(@NotNull AnActionEvent e, @NotNull Notification notification) {
+                        integerCompletableFuture.complete(finalI);
+                        notification.expire();
+                    }
+
                 });
             }
-            Notifications.Bus.notify(notification, context.getProject());
+            notification.notify(context.getProject());
 
             try {
                 exitCode = integerCompletableFuture.get();
