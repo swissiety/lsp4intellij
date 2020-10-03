@@ -694,7 +694,7 @@ public class EditorEventManager {
             }
             request.thenAccept(formatting -> {
                 if (formatting != null) {
-                    invokeLater(() -> applyEdit((List<TextEdit>) formatting, "Reformat document", false));
+                    invokeLater(() -> applyEdit(formatting, "Reformat document", false));
                 }
             });
         });
@@ -730,7 +730,7 @@ public class EditorEventManager {
                 }
                 invokeLater(() -> {
                     if (!editor.isDisposed()) {
-                        applyEdit((List<TextEdit>) formatting, "Reformat selection", false);
+                        applyEdit(formatting, "Reformat selection", false);
                     }
                 });
             });
@@ -838,6 +838,7 @@ public class EditorEventManager {
      * @param pos The LSP position
      * @return The suggestions
      */
+    @NotNull
     public Iterable<? extends LookupElement> completion(Position pos) {
 
         List<LookupElement> lookupItems = new ArrayList<>();
@@ -874,9 +875,8 @@ public class EditorEventManager {
         } catch (JsonRpcException | ExecutionException e) {
             LOG.warn(e);
             wrapper.crashed(e);
-        } finally {
-            return lookupItems;
         }
+        return lookupItems;
     }
 
     /**
@@ -1066,7 +1066,7 @@ public class EditorEventManager {
         }
     }
 
-    boolean applyEdit(List<TextEdit> edits, String name, boolean setCaret) {
+    boolean applyEdit(List<? extends TextEdit> edits, String name, boolean setCaret) {
         return applyEdit(Integer.MAX_VALUE, edits, name, false, setCaret);
     }
 
@@ -1079,7 +1079,7 @@ public class EditorEventManager {
      * @param closeAfter will close the file after edits if set to true
      * @return True if the edits were applied, false otherwise
      */
-    boolean applyEdit(int version, List<TextEdit> edits, String name, boolean closeAfter, boolean setCaret) {
+    boolean applyEdit(int version, List<? extends TextEdit> edits, String name, boolean closeAfter, boolean setCaret) {
         Runnable runnable = getEditsRunnable(version, edits, name, setCaret);
         writeAction(() -> {
             if (runnable != null) {
@@ -1105,7 +1105,7 @@ public class EditorEventManager {
      * @param name    The name of the edit
      * @return The runnable
      */
-    public Runnable getEditsRunnable(int version, List<TextEdit> edits, String name, boolean setCaret) {
+    public Runnable getEditsRunnable(int version, List<? extends TextEdit> edits, String name, boolean setCaret) {
         if (version < this.version) {
             LOG.warn(String.format("Edit version %d is older than current version %d", version, this.version));
             return null;

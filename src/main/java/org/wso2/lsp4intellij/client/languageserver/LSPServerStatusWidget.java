@@ -20,6 +20,7 @@ import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
@@ -34,6 +35,7 @@ import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.wso2.lsp4intellij.IntellijLanguageClient;
 import org.wso2.lsp4intellij.client.languageserver.wrapper.LanguageServerWrapper;
 import org.wso2.lsp4intellij.requests.Timeouts;
 import org.wso2.lsp4intellij.utils.ApplicationUtils;
@@ -88,7 +90,7 @@ public class LSPServerStatusWidget implements StatusBarWidget {
             widgetIDs.put(project, list);
         }
 
-        statusBar.addWidget(widget, "before " + widgetIDs.get(project).get(0));
+        statusBar.addWidget(widget, "before " + widgetIDs.get(project).get(0), ServiceManager.getService(IntellijLanguageClient.class));
         widgetIDs.get(project).add(0, widget.ID());
         return widget;
     }
@@ -108,6 +110,7 @@ public class LSPServerStatusWidget implements StatusBarWidget {
     }
 
     // TODO: this method will be removed from the API in 2020.2
+
     public IconPresentation getPresentation(@NotNull PlatformType type) {
         return new IconPresentation();
     }

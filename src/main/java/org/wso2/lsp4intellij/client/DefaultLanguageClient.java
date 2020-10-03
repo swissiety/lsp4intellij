@@ -285,7 +285,7 @@ public class DefaultLanguageClient implements LanguageClient {
         }
     }
 
-    protected final ClientContext getContext() {
+    protected final @NotNull ClientContext getContext() {
         return context;
     }
 
