@@ -25,7 +25,6 @@ import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
-import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import org.apache.commons.lang.NotImplementedException;
@@ -351,7 +350,7 @@ public final class IntellijLanguageClient implements Disposable {
 
     @Override
     public void dispose() {
-        Disposer.dispose(this);
+        extToLanguageWrapper.forEach((p, w) -> w.stop(false));
     }
 
     private void processDefinition(LanguageServerDefinition definition, String projectUri) {
