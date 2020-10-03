@@ -177,7 +177,7 @@ public class DefaultLanguageClient implements LanguageClient {
             options.add(item.getTitle());
         }
 
-        int exitCode = 0;
+        Integer exitCode;
         FutureTask<Integer> task;
         if (isModal) {
             Icon icon;
@@ -202,6 +202,7 @@ public class DefaultLanguageClient implements LanguageClient {
                 exitCode = task.get();
             } catch (InterruptedException | ExecutionException e) {
                 LOG.warn(e.getMessage());
+                exitCode = -1;
             }
 
         } else {
@@ -221,18 +222,23 @@ public class DefaultLanguageClient implements LanguageClient {
                         integerCompletableFuture.complete(finalI);
                         notification.expire();
                     }
-
                 });
             }
+            notification.whenExpired(() -> {
+                if (!integerCompletableFuture.isDone()) {
+                    integerCompletableFuture.complete(-1);
+                }
+            });
             notification.notify(context.getProject());
 
             try {
                 exitCode = integerCompletableFuture.get();
             } catch (InterruptedException | ExecutionException e) {
                 LOG.warn(e.getMessage());
+                exitCode = -1;
             }
         }
-        return CompletableFuture.completedFuture(new MessageActionItem(actions.get(exitCode).getTitle()));
+        return CompletableFuture.completedFuture(exitCode < 0 ? null : new MessageActionItem(actions.get(exitCode).getTitle()));
     }
 
     @NotNull
