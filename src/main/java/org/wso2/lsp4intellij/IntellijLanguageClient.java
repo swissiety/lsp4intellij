@@ -381,7 +381,7 @@ public final class IntellijLanguageClient implements Disposable {
             }
             return folders;
         }
-        return null;
+        return Collections.emptyList();
     }
 
 
