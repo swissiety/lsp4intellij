@@ -555,13 +555,14 @@ public class LanguageServerWrapper {
 
     public void crashed(Exception e) {
         crashCount += 1;
-        if (crashCount <= 3) {
+        if (crashCount <= 3 || true) {
             reconnect();
         } else {
             invokeLater(() -> {
                 if (alreadyShownCrash) {
                     reconnect();
                 } else {
+                    // TODO: [ms] that way it is annoying for the user (and for the lsp server dev)
                     int response = Messages.showYesNoDialog(String.format(
                             "LanguageServer for definition %s, project %s keeps crashing due to \n%s\n"
                             , serverDefinition.toString(), project.getName(), e.getMessage()),

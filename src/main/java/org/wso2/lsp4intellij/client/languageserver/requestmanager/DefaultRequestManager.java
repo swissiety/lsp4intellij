@@ -569,6 +569,7 @@ public class DefaultRequestManager implements RequestManager {
 
     @Override
     public CompletableFuture<WorkspaceEdit> rename(RenameParams params) {
+        // FIXME: rename request
         //        if (checkStatus()) {
         //            try {
         //                return (checkProvider((Either<Boolean, StaticRegistrationOptions>)serverCapabilities.getRenameProvider())) ?

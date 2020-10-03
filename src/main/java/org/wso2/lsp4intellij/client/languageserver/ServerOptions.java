@@ -15,15 +15,9 @@
  */
 package org.wso2.lsp4intellij.client.languageserver;
 
-import org.eclipse.lsp4j.CodeLensOptions;
-import org.eclipse.lsp4j.CompletionOptions;
-import org.eclipse.lsp4j.DocumentLinkOptions;
-import org.eclipse.lsp4j.DocumentOnTypeFormattingOptions;
-import org.eclipse.lsp4j.ExecuteCommandOptions;
-import org.eclipse.lsp4j.SemanticHighlightingServerCapabilities;
-import org.eclipse.lsp4j.ServerCapabilities;
-import org.eclipse.lsp4j.SignatureHelpOptions;
-import org.eclipse.lsp4j.TextDocumentSyncKind;
+import org.eclipse.lsp4j.*;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Class containing the options of the language server.
@@ -31,33 +25,78 @@ import org.eclipse.lsp4j.TextDocumentSyncKind;
 
 public class ServerOptions {
 
-    //Todo - Revisit and implement with accessors
-    public TextDocumentSyncKind syncKind;
-    public ServerCapabilities capabilities;
-    public CompletionOptions completionOptions;
-    public SignatureHelpOptions signatureHelpOptions;
-    public CodeLensOptions codeLensOptions;
-    public DocumentOnTypeFormattingOptions documentOnTypeFormattingOptions;
-    public DocumentLinkOptions documentLinkOptions;
-    public ExecuteCommandOptions executeCommandOptions;
-    public SemanticHighlightingServerCapabilities semanticHighlightingOptions;
+    @NotNull
+    private final TextDocumentSyncKind syncKind;
+    @NotNull
+    private final ServerCapabilities capabilities;
+    private final CompletionOptions completionOptions;
+    private final SignatureHelpOptions signatureHelpOptions;
+    private final CodeLensOptions codeLensOptions;
+    private final DocumentOnTypeFormattingOptions documentOnTypeFormattingOptions;
+    private final DocumentLinkOptions documentLinkOptions;
+    private final ExecuteCommandOptions executeCommandOptions;
+    @Deprecated
+    private final SemanticHighlightingServerCapabilities semanticHighlightingOptions;
 
-    public ServerOptions(ServerCapabilities serverCapabilities) {
+    public ServerOptions(@NotNull ServerCapabilities serverCapabilities) {
 
         this.capabilities = serverCapabilities;
 
-        if (capabilities.getTextDocumentSync().isRight()) {
-            this.syncKind = capabilities.getTextDocumentSync().getRight().getChange();
-        } else if (capabilities.getTextDocumentSync().isLeft()) {
-            this.syncKind = capabilities.getTextDocumentSync().getLeft();
+        final Either<TextDocumentSyncKind, TextDocumentSyncOptions> textDocumentSync = getCapabilities().getTextDocumentSync();
+        if (textDocumentSync.isRight()) {
+            this.syncKind = textDocumentSync.getRight().getChange();
+        } else if (textDocumentSync.isLeft()) {
+            this.syncKind = textDocumentSync.getLeft();
+        } else {
+            // if omitted it defaults to none
+            this.syncKind = TextDocumentSyncKind.None;
         }
 
-        this.completionOptions = capabilities.getCompletionProvider();
-        this.signatureHelpOptions = capabilities.getSignatureHelpProvider();
-        this.codeLensOptions = capabilities.getCodeLensProvider();
-        this.documentOnTypeFormattingOptions = capabilities.getDocumentOnTypeFormattingProvider();
-        this.documentLinkOptions = capabilities.getDocumentLinkProvider();
-        this.executeCommandOptions = capabilities.getExecuteCommandProvider();
-        this.semanticHighlightingOptions = capabilities.getSemanticHighlighting();
+        this.completionOptions = getCapabilities().getCompletionProvider();
+        this.signatureHelpOptions = getCapabilities().getSignatureHelpProvider();
+        this.codeLensOptions = getCapabilities().getCodeLensProvider();
+        this.documentOnTypeFormattingOptions = getCapabilities().getDocumentOnTypeFormattingProvider();
+        this.documentLinkOptions = getCapabilities().getDocumentLinkProvider();
+        this.executeCommandOptions = getCapabilities().getExecuteCommandProvider();
+        this.semanticHighlightingOptions = getCapabilities().getSemanticHighlighting();
+    }
+
+    @NotNull
+    public TextDocumentSyncKind getSyncKind() {
+        return syncKind;
+    }
+
+    @NotNull
+    public ServerCapabilities getCapabilities() {
+        return capabilities;
+    }
+
+    public CompletionOptions getCompletionOptions() {
+        return completionOptions;
+    }
+
+    public SignatureHelpOptions getSignatureHelpOptions() {
+        return signatureHelpOptions;
+    }
+
+    public CodeLensOptions getCodeLensOptions() {
+        return codeLensOptions;
+    }
+
+    public DocumentOnTypeFormattingOptions getDocumentOnTypeFormattingOptions() {
+        return documentOnTypeFormattingOptions;
+    }
+
+    public DocumentLinkOptions getDocumentLinkOptions() {
+        return documentLinkOptions;
+    }
+
+    public ExecuteCommandOptions getExecuteCommandOptions() {
+        return executeCommandOptions;
+    }
+
+    @Deprecated
+    public SemanticHighlightingServerCapabilities getSemanticHighlightingOptions() {
+        return semanticHighlightingOptions;
     }
 }

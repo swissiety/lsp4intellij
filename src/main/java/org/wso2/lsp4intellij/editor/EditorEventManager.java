@@ -222,16 +222,16 @@ public class EditorEventManager {
         this.identifier = new TextDocumentIdentifier(FileUtils.editorToURIString(editor));
         this.changesParams = new DidChangeTextDocumentParams(new VersionedTextDocumentIdentifier(),
                 Collections.singletonList(new TextDocumentContentChangeEvent()));
-        this.syncKind = serverOptions.syncKind;
+        this.syncKind = serverOptions.getSyncKind();
 
-        this.completionTriggers = (serverOptions.completionOptions != null
-                && serverOptions.completionOptions.getTriggerCharacters() != null) ?
-                serverOptions.completionOptions.getTriggerCharacters() :
+        this.completionTriggers = (serverOptions.getCompletionOptions() != null
+                && serverOptions.getCompletionOptions().getTriggerCharacters() != null) ?
+                serverOptions.getCompletionOptions().getTriggerCharacters() :
                 new ArrayList<>();
 
-        this.signatureTriggers = (serverOptions.signatureHelpOptions != null
-                && serverOptions.signatureHelpOptions.getTriggerCharacters() != null) ?
-                serverOptions.signatureHelpOptions.getTriggerCharacters() :
+        this.signatureTriggers = (serverOptions.getSignatureHelpOptions() != null
+                && serverOptions.getSignatureHelpOptions().getTriggerCharacters() != null) ?
+                serverOptions.getSignatureHelpOptions().getTriggerCharacters() :
                 new ArrayList<>();
 
         this.project = editor.getProject();
