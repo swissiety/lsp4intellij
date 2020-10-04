@@ -112,11 +112,13 @@ public class LSPServerStatusWidget implements StatusBarWidget {
     }
 
     // TODO: this method will be removed from the API in 2020.2
+    @Override
     public IconPresentation getPresentation(@NotNull PlatformType type) {
         return new IconPresentation();
     }
 
     // this method will used starting from 2020.2 as the icon presentation API
+    @Override
     public IconPresentation getPresentation() {
         return new IconPresentation();
     }
@@ -145,6 +147,7 @@ public class LSPServerStatusWidget implements StatusBarWidget {
         }
     }
 
+    @Override
     public void dispose() {
         WindowManager manager = WindowManager.getInstance();
         if (manager != null && project != null && !project.isDisposed()) {

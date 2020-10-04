@@ -50,7 +50,7 @@ public class DefaultLanguageClient implements LanguageClient {
     final private Map<String, DynamicRegistrationMethods> registrations = new ConcurrentHashMap<>();
     @NotNull
     private final ClientContext context;
-    private boolean isModal = false;
+    protected boolean isModal = true;
 
 
     public DefaultLanguageClient(@NotNull ClientContext context) {
@@ -195,7 +195,7 @@ public class DefaultLanguageClient implements LanguageClient {
 
         } else {
 
-            final Notification notification = STICKY_NOTIFICATION_GROUP.createNotification(title, "subtitle", message, getNotificationType(msgType));
+            final Notification notification = STICKY_NOTIFICATION_GROUP.createNotification(title, null, message, getNotificationType(msgType));
             final CompletableFuture<Integer> integerCompletableFuture = new CompletableFuture<>();
             for (int i = 0, optionsSize = options.size(); i < optionsSize; i++) {
                 int finalI = i;
