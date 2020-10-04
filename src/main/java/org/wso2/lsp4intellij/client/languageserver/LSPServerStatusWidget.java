@@ -41,14 +41,13 @@ import org.wso2.lsp4intellij.requests.Timeouts;
 import org.wso2.lsp4intellij.utils.ApplicationUtils;
 import org.wso2.lsp4intellij.utils.GUIUtils;
 
+import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import javax.swing.*;
 
 public class LSPServerStatusWidget implements StatusBarWidget {
 
@@ -102,15 +101,17 @@ public class LSPServerStatusWidget implements StatusBarWidget {
 
     public void notifyResult(Timeouts timeout, Boolean success) {
         Pair<Integer, Integer> oldValue = timeouts.get(timeout);
+        int failed = oldValue.getValue();
+        int succeeded = oldValue.getKey();
         if (success) {
-            timeouts.replace(timeout, new MutablePair<>(oldValue.getKey() + 1, oldValue.getValue()));
+            succeeded++;
         } else {
-            timeouts.replace(timeout, new MutablePair<>(oldValue.getKey(), oldValue.getValue() + 1));
+            failed++;
         }
+        timeouts.replace(timeout, new MutablePair<>(succeeded, failed));
     }
 
     // TODO: this method will be removed from the API in 2020.2
-
     public IconPresentation getPresentation(@NotNull PlatformType type) {
         return new IconPresentation();
     }
@@ -172,15 +173,16 @@ public class LSPServerStatusWidget implements StatusBarWidget {
         @Override
         public Consumer<MouseEvent> getClickConsumer() {
             return (MouseEvent t) -> {
+                if (wrapper.isRestartable()) {
+                    wrapper.restart();
+                    return;
+                }
+
                 JBPopupFactory.ActionSelectionAid mnemonics = JBPopupFactory.ActionSelectionAid.MNEMONICS;
                 Component component = t.getComponent();
                 List<AnAction> actions = new ArrayList<>();
                 if (wrapper.getStatus() == ServerStatus.INITIALIZED) {
                     actions.add(new ShowConnectedFiles());
-                }
-                actions.add(new ShowTimeouts());
-                if (wrapper.isRestartable()) {
-                    actions.add(new Restart());
                 }
 
                 String title = "Server actions";
@@ -207,54 +209,36 @@ public class LSPServerStatusWidget implements StatusBarWidget {
             }
         }
 
-        class ShowTimeouts extends AnAction implements DumbAware {
-            ShowTimeouts() {
-                super("&Show Timeouts", "Show the timeouts proportions of the server", null);
-            }
-
-            @Override
-            public void actionPerformed(@NotNull AnActionEvent e) {
-                StringBuilder message = new StringBuilder();
-                message.append("<html>");
-                message.append("Timeouts (failed requests) :<br>");
-                timeouts.forEach((t, v) -> {
-                    int timeouts = v.getRight();
-                    message.append(t.name(), 0, 1).append(t.name().substring(1).toLowerCase()).append(" => ");
-                    int total = v.getLeft() + timeouts;
-                    if (total != 0) {
-                        if (timeouts > 0) {
-                            message.append("<font color=\"red\">");
-                        }
-                        message.append(timeouts).append("/").append(total).append(" (")
-                                .append(100 * (double) timeouts / total).append("%)<br>");
-                        if (timeouts > 0) {
-                            message.append("</font>");
-                        }
-                    } else {
-                        message.append("0/0 (0%)<br>");
-                    }
-                });
-                message.append("</html>");
-                Messages.showInfoMessage(message.toString(), "Timeouts");
-            }
-        }
-
-        class Restart extends AnAction implements DumbAware {
-
-            Restart() {
-                super("&Restart", "Restarts the language server.", null);
-            }
-
-            @Override
-            public void actionPerformed(@NotNull AnActionEvent anActionEvent) {
-                wrapper.restart();
-            }
-
-        }
-
         @Override
         public String getTooltipText() {
-            return "Language server for extension " + ext + ", project " + projectName;
+            if (!wrapper.isActive() && wrapper.isRestartable()) {
+                return "Click to restart";
+            }
+
+            StringBuilder message = new StringBuilder();
+            message.append("<html>");
+            message.append("<b>").append(projectName).append(": Language server for ").append(ext).append("</b><br>");
+            message.append("Timeouts (failed requests)<br>");
+            timeouts.forEach((t, v) -> {
+                final int timeouts = v.getRight();
+                message.append(t.name(), 0, 1).append(t.name().substring(1).toLowerCase()).append(" ");
+                int total = v.getLeft() + timeouts;
+                if (total != 0) {
+                    if (timeouts > 0) {
+                        message.append("<font color=\"red\">");
+                    }
+                    message.append(timeouts).append("/").append(total).append(" (")
+                            .append(100 * (double) timeouts / total).append("%)<br>");
+                    if (timeouts > 0) {
+                        message.append("</font>");
+                    }
+                } else {
+                    message.append("0/0 (0%)<br>");
+                }
+            });
+            message.append("</html>");
+
+            return message.toString();
         }
     }
 }
