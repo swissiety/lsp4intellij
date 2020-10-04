@@ -70,8 +70,14 @@ public class DefaultRequestManager implements RequestManager {
         return server;
     }
 
+    @Override
     public ServerCapabilities getServerCapabilities() {
         return serverCapabilities;
+    }
+
+    @Override
+    public TextDocumentSyncOptions getTextDocumentOptions() {
+        return textDocumentOptions;
     }
 
     // Client
@@ -304,7 +310,7 @@ public class DefaultRequestManager implements RequestManager {
     public void didSave(DidSaveTextDocumentParams params) {
         if (checkStatus()) {
             try {
-                if (Optional.ofNullable(textDocumentOptions).map(TextDocumentSyncOptions::getSave).isPresent()) {
+                if (textDocumentOptions != null && textDocumentOptions.getSave() != null) {
                     textDocumentService.didSave(params);
                 }
             } catch (Exception e) {
@@ -330,10 +336,11 @@ public class DefaultRequestManager implements RequestManager {
     public CompletableFuture<Either<List<CompletionItem>, CompletionList>> completion(CompletionParams params) {
         if (checkStatus()) {
             try {
-                return (serverCapabilities.getCompletionProvider() != null) ? textDocumentService.completion(params) : null;
+                if (serverCapabilities.getCompletionProvider() != null) {
+                    return textDocumentService.completion(params);
+                }
             } catch (Exception e) {
                 crashed(e);
-                return null;
             }
         }
         return null;
@@ -343,12 +350,12 @@ public class DefaultRequestManager implements RequestManager {
     public CompletableFuture<CompletionItem> resolveCompletionItem(CompletionItem unresolved) {
         if (checkStatus()) {
             try {
-                return (Optional.ofNullable(serverCapabilities.getCompletionProvider())
-                        .map(CompletionOptions::getResolveProvider).orElse(false)) ?
-                        textDocumentService.resolveCompletionItem(unresolved) : null;
+                if (Optional.ofNullable(serverCapabilities.getCompletionProvider())
+                        .map(CompletionOptions::getResolveProvider).orElse(false)) {
+                    return textDocumentService.resolveCompletionItem(unresolved);
+                }
             } catch (Exception e) {
                 crashed(e);
-                return null;
             }
         }
         return null;
@@ -363,13 +370,11 @@ public class DefaultRequestManager implements RequestManager {
     public CompletableFuture<Hover> hover(HoverParams params) {
         if (checkStatus()) {
             try {
-                return (
-                    Optional.ofNullable(serverCapabilities.getHoverProvider()).orElse(false)) ?
-                        textDocumentService.hover(params) : null;
-               
+                if (serverCapabilities.getHoverProvider() != null) {
+                    return textDocumentService.hover(params);
+                }
             } catch (Exception e) {
                 crashed(e);
-                return null;
             }
         }
         return null;
@@ -384,10 +389,11 @@ public class DefaultRequestManager implements RequestManager {
     public CompletableFuture<SignatureHelp> signatureHelp(SignatureHelpParams params) {
         if (checkStatus()) {
             try {
-                return (serverCapabilities.getSignatureHelpProvider() != null) ? textDocumentService.signatureHelp(params) : null;
+                if (serverCapabilities.getSignatureHelpProvider() != null) {
+                    return textDocumentService.signatureHelp(params);
+                }
             } catch (Exception e) {
                 crashed(e);
-                return null;
             }
         }
         return null;
@@ -397,10 +403,11 @@ public class DefaultRequestManager implements RequestManager {
     public CompletableFuture<List<? extends Location>> references(ReferenceParams params) {
         if (checkStatus()) {
             try {
-                return (serverCapabilities.getReferencesProvider()) ? textDocumentService.references(params) : null;
+                if (serverCapabilities.getReferencesProvider() != null && serverCapabilities.getReferencesProvider()) {
+                    return textDocumentService.references(params);
+                }
             } catch (Exception e) {
                 crashed(e);
-                return null;
             }
         }
         return null;
@@ -415,10 +422,11 @@ public class DefaultRequestManager implements RequestManager {
     public CompletableFuture<List<? extends DocumentHighlight>> documentHighlight(DocumentHighlightParams params) {
         if (checkStatus()) {
             try {
-                return (serverCapabilities.getDocumentHighlightProvider()) ? textDocumentService.documentHighlight(params) : null;
+                if (serverCapabilities.getDocumentHighlightProvider()) {
+                    return textDocumentService.documentHighlight(params);
+                }
             } catch (Exception e) {
                 crashed(e);
-                return null;
             }
         }
         return null;
@@ -428,10 +436,11 @@ public class DefaultRequestManager implements RequestManager {
     public CompletableFuture<List<Either<SymbolInformation, DocumentSymbol>>> documentSymbol(DocumentSymbolParams params) {
         if (checkStatus()) {
             try {
-                return (serverCapabilities.getDocumentSymbolProvider()) ? textDocumentService.documentSymbol(params) : null;
+                if (serverCapabilities.getDocumentSymbolProvider()) {
+                    return textDocumentService.documentSymbol(params);
+                }
             } catch (Exception e) {
                 crashed(e);
-                return null;
             }
         }
         return null;
@@ -441,24 +450,25 @@ public class DefaultRequestManager implements RequestManager {
     public CompletableFuture<List<? extends TextEdit>> formatting(DocumentFormattingParams params) {
         if (checkStatus()) {
             try {
-                return (serverCapabilities.getDocumentFormattingProvider()) ? textDocumentService.formatting(params) : null;
+                if (serverCapabilities.getDocumentFormattingProvider()) {
+                    return textDocumentService.formatting(params);
+                }
             } catch (Exception e) {
                 crashed(e);
-                return null;
             }
-        } else {
-            return null;
         }
+        return null;
     }
 
     @Override
     public CompletableFuture<List<? extends TextEdit>> rangeFormatting(DocumentRangeFormattingParams params) {
         if (checkStatus()) {
             try {
-                return (serverCapabilities.getDocumentRangeFormattingProvider() != null) ? textDocumentService.rangeFormatting(params) : null;
+                if (serverCapabilities.getDocumentRangeFormattingProvider() != null) {
+                    return textDocumentService.rangeFormatting(params);
+                }
             } catch (Exception e) {
                 crashed(e);
-                return null;
             }
         }
         return null;
@@ -468,11 +478,11 @@ public class DefaultRequestManager implements RequestManager {
     public CompletableFuture<List<? extends TextEdit>> onTypeFormatting(DocumentOnTypeFormattingParams params) {
         if (checkStatus()) {
             try {
-                return (serverCapabilities.getDocumentOnTypeFormattingProvider() != null) ?
-                        textDocumentService.onTypeFormatting(params) : null;
+                if (serverCapabilities.getDocumentOnTypeFormattingProvider() != null) {
+                    return textDocumentService.onTypeFormatting(params);
+                }
             } catch (Exception e) {
                 crashed(e);
-                return null;
             }
         }
         return null;
@@ -487,10 +497,11 @@ public class DefaultRequestManager implements RequestManager {
     public CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>> definition(DefinitionParams params) {
         if (checkStatus()) {
             try {
-                return (serverCapabilities.getDefinitionProvider()) ? textDocumentService.definition(params) : null;
+                if (serverCapabilities.getDefinitionProvider()) {
+                    return textDocumentService.definition(params);
+                }
             } catch (Exception e) {
                 crashed(e);
-                return null;
             }
         }
         return null;
@@ -513,10 +524,11 @@ public class DefaultRequestManager implements RequestManager {
     public CompletableFuture<List<? extends CodeLens>> codeLens(CodeLensParams params) {
         if (checkStatus()) {
             try {
-                return (serverCapabilities.getCodeLensProvider() != null) ? textDocumentService.codeLens(params) : null;
+                if (serverCapabilities.getCodeLensProvider() != null) {
+                    return textDocumentService.codeLens(params);
+                }
             } catch (Exception e) {
                 crashed(e);
-                return null;
             }
         }
         return null;
@@ -526,11 +538,12 @@ public class DefaultRequestManager implements RequestManager {
     public CompletableFuture<CodeLens> resolveCodeLens(CodeLens unresolved) {
         if (checkStatus()) {
             try {
-                return (serverCapabilities.getCodeLensProvider() != null && serverCapabilities.getCodeLensProvider()
-                        .isResolveProvider()) ? textDocumentService.resolveCodeLens(unresolved) : null;
+                final CodeLensOptions codeLensProvider = serverCapabilities.getCodeLensProvider();
+                if (codeLensProvider != null && codeLensProvider.isResolveProvider()) {
+                    return textDocumentService.resolveCodeLens(unresolved);
+                }
             } catch (Exception e) {
                 crashed(e);
-                return null;
             }
         }
         return null;
@@ -540,12 +553,11 @@ public class DefaultRequestManager implements RequestManager {
     public CompletableFuture<List<DocumentLink>> documentLink(DocumentLinkParams params) {
         if (checkStatus()) {
             try {
-                return (serverCapabilities.getDocumentLinkProvider() != null) ?
-                        textDocumentService.documentLink(params) :
-                        null;
+                if (serverCapabilities.getDocumentLinkProvider() != null) {
+                    return textDocumentService.documentLink(params);
+                }
             } catch (Exception e) {
                 crashed(e);
-                return null;
             }
         }
         return null;
@@ -555,13 +567,12 @@ public class DefaultRequestManager implements RequestManager {
     public CompletableFuture<DocumentLink> documentLinkResolve(DocumentLink unresolved) {
         if (checkStatus()) {
             try {
-                return (serverCapabilities.getDocumentLinkProvider() != null && serverCapabilities
-                        .getDocumentLinkProvider().getResolveProvider()) ?
-                        textDocumentService.documentLinkResolve(unresolved) :
-                        null;
+                final DocumentLinkOptions documentLinkProvider = serverCapabilities.getDocumentLinkProvider();
+                if (documentLinkProvider != null && documentLinkProvider.getResolveProvider()) {
+                    return textDocumentService.documentLinkResolve(unresolved);
+                }
             } catch (Exception e) {
                 crashed(e);
-                return null;
             }
         }
         return null;

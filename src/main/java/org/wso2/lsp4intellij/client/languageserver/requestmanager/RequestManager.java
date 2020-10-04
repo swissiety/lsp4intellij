@@ -30,6 +30,10 @@ import java.util.concurrent.CompletableFuture;
  */
 public interface RequestManager extends LanguageClient, TextDocumentService, WorkspaceService, LanguageServer {
 
+    ServerCapabilities getServerCapabilities();
+
+    TextDocumentSyncOptions getTextDocumentOptions();
+
     //------------------------------------- Server2Client ---------------------------------------------------------//
     @Override
     void showMessage(MessageParams messageParams);

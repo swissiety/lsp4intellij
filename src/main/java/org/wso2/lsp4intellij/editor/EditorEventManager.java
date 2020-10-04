@@ -31,18 +31,9 @@ import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.command.CommandProcessor;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.editor.Document;
-import com.intellij.openapi.editor.Editor;
-import com.intellij.openapi.editor.EditorModificationUtil;
-import com.intellij.openapi.editor.LogicalPosition;
-import com.intellij.openapi.editor.ScrollType;
-import com.intellij.openapi.editor.SelectionModel;
+import com.intellij.openapi.editor.*;
 import com.intellij.openapi.editor.colors.EditorColors;
-import com.intellij.openapi.editor.event.DocumentEvent;
-import com.intellij.openapi.editor.event.DocumentListener;
-import com.intellij.openapi.editor.event.EditorMouseEvent;
-import com.intellij.openapi.editor.event.EditorMouseListener;
-import com.intellij.openapi.editor.event.EditorMouseMotionListener;
+import com.intellij.openapi.editor.event.*;
 import com.intellij.openapi.editor.ex.EditorSettingsExternalizable;
 import com.intellij.openapi.editor.markup.HighlighterLayer;
 import com.intellij.openapi.editor.markup.HighlighterTargetArea;
@@ -61,45 +52,7 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.ui.Hint;
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.lsp4j.CodeAction;
-import org.eclipse.lsp4j.CodeActionContext;
-import org.eclipse.lsp4j.CodeActionParams;
-import org.eclipse.lsp4j.Command;
-import org.eclipse.lsp4j.CompletionItem;
-import org.eclipse.lsp4j.CompletionItemKind;
-import org.eclipse.lsp4j.CompletionList;
-import org.eclipse.lsp4j.CompletionParams;
-import org.eclipse.lsp4j.Diagnostic;
-import org.eclipse.lsp4j.DidChangeTextDocumentParams;
-import org.eclipse.lsp4j.DidCloseTextDocumentParams;
-import org.eclipse.lsp4j.DidOpenTextDocumentParams;
-import org.eclipse.lsp4j.DidSaveTextDocumentParams;
-import org.eclipse.lsp4j.DocumentFormattingParams;
-import org.eclipse.lsp4j.DocumentRangeFormattingParams;
-import org.eclipse.lsp4j.ExecuteCommandParams;
-import org.eclipse.lsp4j.FormattingOptions;
-import org.eclipse.lsp4j.Hover;
-import org.eclipse.lsp4j.InsertTextFormat;
-import org.eclipse.lsp4j.Location;
-import org.eclipse.lsp4j.LocationLink;
-import org.eclipse.lsp4j.MarkupContent;
-import org.eclipse.lsp4j.Position;
-import org.eclipse.lsp4j.Range;
-import org.eclipse.lsp4j.ReferenceContext;
-import org.eclipse.lsp4j.ReferenceParams;
-import org.eclipse.lsp4j.RenameParams;
-import org.eclipse.lsp4j.SignatureHelp;
-import org.eclipse.lsp4j.SignatureInformation;
-import org.eclipse.lsp4j.TextDocumentContentChangeEvent;
-import org.eclipse.lsp4j.TextDocumentIdentifier;
-import org.eclipse.lsp4j.TextDocumentItem;
-import org.eclipse.lsp4j.TextDocumentPositionParams;
-import org.eclipse.lsp4j.TextDocumentSaveReason;
-import org.eclipse.lsp4j.TextDocumentSyncKind;
-import org.eclipse.lsp4j.TextEdit;
-import org.eclipse.lsp4j.VersionedTextDocumentIdentifier;
-import org.eclipse.lsp4j.WillSaveTextDocumentParams;
-import org.eclipse.lsp4j.WorkspaceEdit;
+import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.jsonrpc.JsonRpcException;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.jsonrpc.messages.Tuple;
@@ -121,15 +74,12 @@ import org.wso2.lsp4intellij.utils.DocumentUtils;
 import org.wso2.lsp4intellij.utils.FileUtils;
 import org.wso2.lsp4intellij.utils.GUIUtils;
 
-import java.awt.Cursor;
-import java.awt.Point;
+import javax.swing.*;
+import java.awt.*;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -137,26 +87,10 @@ import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.swing.Icon;
-
-import static org.wso2.lsp4intellij.editor.EditorEventManagerBase.getCtrlRange;
-import static org.wso2.lsp4intellij.editor.EditorEventManagerBase.getIsCtrlDown;
-import static org.wso2.lsp4intellij.editor.EditorEventManagerBase.getIsKeyPressed;
-import static org.wso2.lsp4intellij.editor.EditorEventManagerBase.setCtrlRange;
+import static org.wso2.lsp4intellij.editor.EditorEventManagerBase.*;
 import static org.wso2.lsp4intellij.requests.Timeout.getTimeout;
-import static org.wso2.lsp4intellij.requests.Timeouts.CODEACTION;
-import static org.wso2.lsp4intellij.requests.Timeouts.COMPLETION;
-import static org.wso2.lsp4intellij.requests.Timeouts.DEFINITION;
-import static org.wso2.lsp4intellij.requests.Timeouts.EXECUTE_COMMAND;
-import static org.wso2.lsp4intellij.requests.Timeouts.HOVER;
-import static org.wso2.lsp4intellij.requests.Timeouts.REFERENCES;
-import static org.wso2.lsp4intellij.requests.Timeouts.SIGNATURE;
-import static org.wso2.lsp4intellij.requests.Timeouts.WILLSAVE;
-import static org.wso2.lsp4intellij.utils.ApplicationUtils.computableReadAction;
-import static org.wso2.lsp4intellij.utils.ApplicationUtils.computableWriteAction;
-import static org.wso2.lsp4intellij.utils.ApplicationUtils.invokeLater;
-import static org.wso2.lsp4intellij.utils.ApplicationUtils.pool;
-import static org.wso2.lsp4intellij.utils.ApplicationUtils.writeAction;
+import static org.wso2.lsp4intellij.requests.Timeouts.*;
+import static org.wso2.lsp4intellij.utils.ApplicationUtils.*;
 import static org.wso2.lsp4intellij.utils.GUIUtils.createAndShowEditorHint;
 
 /**
@@ -1311,8 +1245,16 @@ public class EditorEventManager {
     public void documentSaved() {
         pool(() -> {
             if (!editor.isDisposed()) {
-                DidSaveTextDocumentParams params = new DidSaveTextDocumentParams(identifier, editor.getDocument().getText());
-                requestManager.didSave(params);
+                // its not clear from spec whether to include/exclude if SaveOption is not set
+                final TextDocumentSyncOptions options = requestManager.getTextDocumentOptions();
+                if (options != null) {
+                    final SaveOptions save = options.getSave();
+                    if (save.getIncludeText()) {
+                        requestManager.didSave(new DidSaveTextDocumentParams(identifier, editor.getDocument().getText()));
+                        return;
+                    }
+                }
+                requestManager.didSave(new DidSaveTextDocumentParams(identifier));
             }
         });
     }
