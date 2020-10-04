@@ -1,6 +1,6 @@
 plugins {
     id "jacoco"
-    id "org.jetbrains.intellij"
+    id "org.jetbrains.intellij" version "0.4.26"
     id "com.github.hierynomus.license" version "0.15.0"
     id "com.github.gradle-git-version-calculator" version "1.1.0"
     id 'net.researchgate.release' version '2.6.0'
@@ -15,10 +15,11 @@ repositories {
 }
 
 group = "org.wso2.lsp4intellij"
-version = gitVersionCalculator.calculateVersion("v")
+version = gitVersionCalculator.calculateVersion("");    // ms: v prefix fails
 
 intellij {
     version '2020.1'
+    type = ['IC'];
 }
 
 dependencies {
