@@ -50,7 +50,7 @@ public class DefaultLanguageClient implements LanguageClient {
     final private Map<String, DynamicRegistrationMethods> registrations = new ConcurrentHashMap<>();
     @NotNull
     private final ClientContext context;
-    protected boolean isModal = true;
+    protected boolean isModal = false;
 
 
     public DefaultLanguageClient(@NotNull ClientContext context) {
@@ -161,9 +161,9 @@ public class DefaultLanguageClient implements LanguageClient {
 
         String[] options = new String[actions == null ? 0 : actions.size()];
         for (int i = 0, size = options.length; i < size; i++) {
-            MessageActionItem item = actions.get(i);
-            options[i] = item.getTitle();
+            options[i] = actions.get(i).getTitle();
         }
+
 
         Integer exitCode;
         FutureTask<Integer> task;
