@@ -155,15 +155,14 @@ public class DefaultLanguageClient implements LanguageClient {
     @Override
     public CompletableFuture<MessageActionItem> showMessageRequest(ShowMessageRequestParams showMessageRequestParams) {
         List<MessageActionItem> actions = showMessageRequestParams.getActions();
-        String title = "Language Server message";
+        String title = "Language Server " + showMessageRequestParams.getType().toString();
         String message = showMessageRequestParams.getMessage();
         MessageType msgType = showMessageRequestParams.getType();
 
-        List<String> options = new ArrayList<>();
-        if (actions != null) {
-            for (MessageActionItem item : actions) {
-                options.add(item.getTitle());
-            }
+        String[] options = new String[actions == null ? 0 : actions.size()];
+        for (int i = 0, size = options.length; i < size; i++) {
+            MessageActionItem item = actions.get(i);
+            options[i] = item.getTitle();
         }
 
         Integer exitCode;
@@ -184,7 +183,7 @@ public class DefaultLanguageClient implements LanguageClient {
             }
 
             task = new FutureTask<>(
-                    () -> Messages.showDialog(message, title, (String[]) options.toArray(), 0, icon));
+                    () -> Messages.showDialog(message, title, options, 0, icon));
             ApplicationManager.getApplication().invokeAndWait(task);
 
             try {
@@ -198,9 +197,9 @@ public class DefaultLanguageClient implements LanguageClient {
 
             final Notification notification = STICKY_NOTIFICATION_GROUP.createNotification(title, null, message, getNotificationType(msgType));
             final CompletableFuture<Integer> integerCompletableFuture = new CompletableFuture<>();
-            for (int i = 0, optionsSize = options.size(); i < optionsSize; i++) {
+            for (int i = 0, optionsSize = options.length; i < optionsSize; i++) {
                 int finalI = i;
-                notification.addAction(new NotificationAction(options.get(finalI)) {
+                notification.addAction(new NotificationAction(options[i]) {
                     @Override
                     public boolean isDumbAware() {
                         return true;
