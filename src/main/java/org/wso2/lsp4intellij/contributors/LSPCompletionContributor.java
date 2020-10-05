@@ -89,7 +89,7 @@ class LSPCompletionContributor extends CompletionContributor {
         if (manager == null) {
             return false;
         }
-        for (String triggerChar : manager.completionTriggers) {
+        for (String triggerChar : manager.getCompletionTriggers()) {
             if (triggerChar != null && triggerChar.length() == 1 && triggerChar.charAt(0) == typeChar) {
                 return true;
             }

@@ -111,18 +111,18 @@ public class EditorEventManager {
 
     public Editor editor;
     public LanguageServerWrapper wrapper;
-    private Project project;
-    private RequestManager requestManager;
-    private TextDocumentIdentifier identifier;
-    private DocumentListener documentListener;
-    private EditorMouseListener mouseListener;
-    private EditorMouseMotionListener mouseMotionListener;
-    private LSPCaretListenerImpl caretListener;
+    private final Project project;
+    private final RequestManager requestManager;
+    private final TextDocumentIdentifier identifier;
+    private final DocumentListener documentListener;
+    private final EditorMouseListener mouseListener;
+    private final EditorMouseMotionListener mouseMotionListener;
+    private final LSPCaretListenerImpl caretListener;
 
-    public List<String> completionTriggers;
-    private List<String> signatureTriggers;
-    private DidChangeTextDocumentParams changesParams;
-    private TextDocumentSyncKind syncKind;
+    private final List<String> completionTriggers;
+    private final List<String> signatureTriggers;
+    private final DidChangeTextDocumentParams changesParams;
+    private final TextDocumentSyncKind syncKind;
     private volatile boolean needSave = false;
     private int version = -1;
     private long predTime = -1L;
@@ -1468,10 +1468,14 @@ public class EditorEventManager {
         });
     }
 
+    public List<String> getCompletionTriggers() {
+        return completionTriggers;
+    }
+
     private static class LSPTextEdit implements Comparable<LSPTextEdit> {
-        private String text;
-        private int startOffset;
-        private int endOffset;
+        private final String text;
+        private final int startOffset;
+        private final int endOffset;
 
         LSPTextEdit(String text, int start, int end) {
             this.text = text;
@@ -1498,11 +1502,10 @@ public class EditorEventManager {
     }
 
     static class SnippetVariable {
-        String lspSnippetText;
-        int startIndex;
-        int endIndex;
-        String variableValue;
-        String intellijSnippetText;
+        private final String lspSnippetText;
+        private final int startIndex;
+        private final int endIndex;
+        private final String variableValue;
 
         SnippetVariable(String text, int start, int end) {
             this.lspSnippetText = text;
