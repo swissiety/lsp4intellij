@@ -43,10 +43,10 @@ public class ServerOptions {
         this.capabilities = serverCapabilities;
 
         final Either<TextDocumentSyncKind, TextDocumentSyncOptions> textDocumentSync = getCapabilities().getTextDocumentSync();
-        if (textDocumentSync.isRight()) {
-            this.syncKind = textDocumentSync.getRight().getChange();
-        } else if (textDocumentSync.isLeft()) {
+        if (textDocumentSync.isLeft()) {
             this.syncKind = textDocumentSync.getLeft();
+        } else if (textDocumentSync.isRight() && textDocumentSync.getRight().getChange() != null) {
+            this.syncKind = textDocumentSync.getRight().getChange();
         } else {
             // if omitted it defaults to none
             this.syncKind = TextDocumentSyncKind.None;
