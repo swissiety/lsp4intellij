@@ -176,7 +176,7 @@ public class LSPServerStatusWidget implements StatusBarWidget {
         @Override
         public Consumer<MouseEvent> getClickConsumer() {
             return (MouseEvent t) -> {
-                if (wrapper.isRestartable()) {
+                if (wrapper.getStatus() == ServerStatus.STOPPED) {
                     wrapper.restart();
                     return;
                 }
@@ -214,8 +214,8 @@ public class LSPServerStatusWidget implements StatusBarWidget {
 
         @Override
         public String getTooltipText() {
-            if (!wrapper.isActive() && wrapper.isRestartable()) {
-                return "Click to restart";
+            if (wrapper.getStatus() == ServerStatus.STOPPED) {
+                return "Click to reconnect";
             }
 
             StringBuilder message = new StringBuilder();
