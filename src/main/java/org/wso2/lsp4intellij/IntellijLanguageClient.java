@@ -16,8 +16,6 @@
 package org.wso2.lsp4intellij;
 
 import com.intellij.AppTopics;
-import com.intellij.notification.Notification;
-import com.intellij.notification.NotificationType;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Service;
@@ -258,7 +256,7 @@ public final class IntellijLanguageClient implements Disposable {
         });
     }
 
-    public synchronized LanguageServerWrapper updateLanguageWrapperContainers(Project project, final Pair<String, String> key, LanguageServerDefinition serverDefinition) {
+    private synchronized LanguageServerWrapper updateLanguageWrapperContainers(Project project, final Pair<String, String> key, LanguageServerDefinition serverDefinition) {
         String projectUri = FileUtils.projectToUri(project);
         LanguageServerWrapper wrapper = extToLanguageWrapper.get(key);
         String ext = key.getLeft();
