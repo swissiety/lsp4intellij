@@ -101,7 +101,10 @@ public final class IntellijLanguageClient implements Disposable {
         String projectStr = FileUtils.projectToUri(project);
         // find serverdefinition keys for this project and try to start a wrapper
         extToServerDefinition.entrySet().stream().filter((e) -> e.getKey().getRight().equals(projectStr)).forEach(entry -> {
-            updateLanguageWrapperContainers(project, entry.getKey(), entry.getValue()).start();
+            final LanguageServerWrapper wrapper = addLanguageServerWrapper(project, entry.getKey(), entry.getValue());
+            if (wrapper != null) {
+                wrapper.start();
+            }
         });
 
     }
@@ -249,14 +252,18 @@ public final class IntellijLanguageClient implements Disposable {
                 return;
             }
             // Update project mapping for language servers.
-            LanguageServerWrapper wrapper = updateLanguageWrapperContainers(project, new ImmutablePair<>(ext, projectUri), serverDefinition);
+            LanguageServerWrapper wrapper = addLanguageServerWrapper(project, new ImmutablePair<>(ext, projectUri), serverDefinition);
 
             LOG.info("Adding file " + fileName);
             wrapper.connect(editor);
         });
     }
 
-    private synchronized LanguageServerWrapper updateLanguageWrapperContainers(Project project, final Pair<String, String> key, LanguageServerDefinition serverDefinition) {
+
+    /**
+     * Returns the newly created LanguageServerWrapper if necessary; otherwise it returns null
+     */
+    private synchronized LanguageServerWrapper addLanguageServerWrapper(Project project, final Pair<String, String> key, LanguageServerDefinition serverDefinition) {
         String projectUri = FileUtils.projectToUri(project);
         LanguageServerWrapper wrapper = extToLanguageWrapper.get(key);
         String ext = key.getLeft();
@@ -275,12 +282,11 @@ public final class IntellijLanguageClient implements Disposable {
             Set<LanguageServerWrapper> wrappers = projectToLanguageWrappers
                     .computeIfAbsent(projectUri, k -> new HashSet<>());
             wrappers.add(wrapper);
-
+            return wrapper;
         } else {
             LOG.info("Wrapper already existing for " + ext + " , " + projectUri);
         }
-
-        return wrapper;
+        return null;
     }
 
     /**
