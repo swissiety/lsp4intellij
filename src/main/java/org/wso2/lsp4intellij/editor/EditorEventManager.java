@@ -1390,9 +1390,6 @@ public class EditorEventManager {
             if (editor.isDisposed()) {
                 return;
             }
-            if (annotations == null) {
-                annotations = new ArrayList<>();
-            }
 
             // sends code action request.
             int caretPos = editor.getCaretModel().getCurrentCaret().getOffset();
@@ -1408,11 +1405,11 @@ public class EditorEventManager {
                 if (element.isLeft()) {
                     Command command = element.getLeft();
                     annotations.forEach(annotation -> {
-                        int start = annotation.getStartOffset();
-                        int end = annotation.getEndOffset();
-                        if (start <= caretPos && end >= caretPos) {
+                        int startFix = annotation.getStartOffset();
+                        int endFix = annotation.getEndOffset();
+                        if (startFix <= caretPos && endFix >= caretPos) {
                             annotation.registerFix(new LSPCommandFix(FileUtils.editorToURIString(editor), command),
-                                    new TextRange(start, end));
+                                    new TextRange(startFix, endFix));
                             codeActionSyncRequired = true;
                         }
                     });
@@ -1438,9 +1435,9 @@ public class EditorEventManager {
                         int endOffset = editor.getDocument().getLineEndOffset(line);
                         TextRange range = new TextRange(startOffset, endOffset);
 
-                        Annotation annotation = this.anonHolder.createInfoAnnotation(range, codeAction.getTitle());
+                        Annotation annotation = anonHolder.createInfoAnnotation(range, codeAction.getTitle());
                         annotation.registerFix(new LSPCodeActionFix(FileUtils.editorToURIString(editor), codeAction), range);
-                        this.annotations.add(annotation);
+                        annotations.add(annotation);
                         diagnosticSyncRequired = true;
                     }
                 }

@@ -307,6 +307,7 @@ public class LanguageServerWrapper {
                 return;
             }
 
+            // runnables are getting chained/queued and executed even when initializeFuture is already done
             initializeFuture.thenRun(() -> {
                 if (connectedEditors.containsKey(uri)) {
                     return;
@@ -439,7 +440,7 @@ public class LanguageServerWrapper {
     /**
      * Starts the LanguageServer
      */
-    public void start() {
+    synchronized public void start() {
         if (status == STOPPED && !alreadyShownCrash && !alreadyShownTimeout) {
             setStatus(STARTING);
             try {
