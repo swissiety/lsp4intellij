@@ -20,6 +20,7 @@ import com.intellij.codeInsight.hint.HintManagerImpl;
 import com.intellij.codeInsight.intention.IntentionAction;
 import com.intellij.codeInspection.util.IntentionFamilyName;
 import com.intellij.codeInspection.util.IntentionName;
+import com.intellij.icons.AllIcons;
 import com.intellij.ide.DataManager;
 import com.intellij.lang.annotation.Annotation;
 import com.intellij.lang.annotation.AnnotationHolder;
@@ -32,7 +33,6 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.LogicalPosition;
 import com.intellij.openapi.fileEditor.FileEditorManager;
@@ -40,16 +40,17 @@ import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.ui.popup.ListPopup;
+import com.intellij.openapi.util.Iconable;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
 import com.intellij.ui.LightweightHint;
 import com.intellij.ui.awt.RelativePoint;
+import com.intellij.ui.components.JBList;
 import com.intellij.util.IncorrectOperationException;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticRelatedInformation;
 import org.eclipse.lsp4j.Location;
-import org.eclipse.lsp4j.Range;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.wso2.lsp4intellij.IntellijLanguageClient;
@@ -59,8 +60,6 @@ import org.wso2.lsp4intellij.utils.DocumentUtils;
 import org.wso2.lsp4intellij.utils.FileUtils;
 
 import javax.swing.*;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
@@ -185,7 +184,6 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
         /*
         AnnotationBuilder annotationBuilder = holder.newAnnotation(severity, diagnostic.getMessage());
         annotationBuilder.range(textRange);
-        */
 
 
         if (diagnostic.getRelatedInformation() != null && !diagnostic.getRelatedInformation().isEmpty()) {
@@ -196,101 +194,10 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
             }
             sb.append("</ul></html>");
             //annotationBuilder.tooltip( sb.toString() );
-            // annotation.setTooltip( sb.toString());
+            annotation.setTooltip( sb.toString());
         }
-
-        annotation.registerFix(new IntentionAction() {
-            @Override
-            public @NotNull @IntentionName String getText() {
-                return "Find cause";
-            }
-
-            @Override
-            public @NotNull @IntentionFamilyName String getFamilyName() {
-                return "Lsp Find cause";
-            }
-
-            @Override
-            public boolean isAvailable(@NotNull Project project, Editor editor, PsiFile file) {
-                // FIXME remove!
-                int b = 5;
-
-                if (b < 7) {
-                    if (b == 5) {
-
-                    }
-                }
-
-                return true;
-            }
-
-            @Override
-            public void invoke(@NotNull Project project, Editor editor, PsiFile file) throws IncorrectOperationException {
-
-                JBPopupFactory.ActionSelectionAid mnemonics = JBPopupFactory.ActionSelectionAid.MNEMONICS;
-                List<AnAction> actions = new ArrayList<>();
-
-                for (DiagnosticRelatedInformation relatedInformation : diagnostic.getRelatedInformation()) {
-                    actions.add(new RelatedInformationItem(relatedInformation));
-                }
-
-                String title = "Related Information";
-                DataContext context = DataManager.getInstance().getDataContext(editor.getComponent());
-                DefaultActionGroup group = new DefaultActionGroup(actions);
-
-                ListPopup popup = JBPopupFactory.getInstance()
-                        .createActionGroupPopup(title, group, context, mnemonics, true);
-
-                popup.addListSelectionListener(new ListSelectionListener() {
-                    @Override
-                    public void valueChanged(ListSelectionEvent event) {
-                        // preview selection
-                        WriteCommandAction.runWriteCommandAction(project, () -> {
-                            int idx = event.getFirstIndex();        // FIXME [ms] thats not the selected list index!
-                            DiagnosticRelatedInformation rInfo = diagnostic.getRelatedInformation().get(idx);
-                            final VirtualFile vf = FileUtils.virtualFileFromURI(rInfo.getLocation().getUri());
-                            if (vf == null) {
-                                return;
-                            }
-                            // TODO: focus editor matching for related informations uri
-                            Editor previewEditor = FileEditorManager.getInstance(project).openTextEditor(new OpenFileDescriptor(project,
-                                    vf, rInfo.getLocation().getRange().getStart().getLine(), rInfo.getLocation().getRange().getStart().getCharacter()), true);
-                            if (previewEditor == null) {
-                                return;
-                            }
-
-                            int flags = HintManager.HIDE_BY_ANY_KEY | HintManager.HIDE_BY_TEXT_CHANGE | HintManager.HIDE_BY_OTHER_HINT | HintManager.HIDE_BY_SCROLLING;
-                            JComponent hintText = new JLabel(rInfo.getMessage());
-                            LightweightHint hint = new LightweightHint(hintText);
-                            Point p = HintManagerImpl.getHintPosition(hint, previewEditor, previewEditor.logicalToVisualPosition(new LogicalPosition(rInfo.getLocation().getRange().getStart().getLine(), rInfo.getLocation().getRange().getStart().getCharacter())), HintManager.ABOVE);
-                            HintManagerImpl.getInstanceImpl().showEditorHint(hint,
-                                    previewEditor,
-                                    p,
-                                    flags,
-                                    -1,
-                                    true,
-                                    HintManagerImpl.createHintHint(previewEditor,
-                                            p,
-                                            hint,
-                                            HintManager.ABOVE).setContentActive(true));
-
-                        });
-
-                    }
-                });
-                Dimension dimension = popup.getContent().getPreferredSize();
-
-                Document document = editor.getDocument();
-                final Point aPointOnComponent = editor.visualPositionToXY(editor.getCaretModel().getVisualPosition());
-                aPointOnComponent.y += (editor.getLineHeight() + 2);
-                popup.show(new RelativePoint(editor.getComponent(), aPointOnComponent));
-            }
-
-            @Override
-            public boolean startInWriteAction() {
-                return false;
-            }
-        });
+        */
+        annotation.registerFix(new ShowRelatedInformationAction(diagnostic));
 
         return annotation;
     }
@@ -313,41 +220,106 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
     }
 
     private static class RelatedInformationItem extends AnAction {
-        Location loc;
+        @NotNull Location loc;
 
-        RelatedInformationItem(DiagnosticRelatedInformation relatedInformation) {
+        RelatedInformationItem(@NotNull DiagnosticRelatedInformation relatedInformation) {
             super(relatedInformation.getMessage(), "Links to Related Information", null);
             loc = relatedInformation.getLocation();
-            // FIXME
-            assert loc != null;
         }
 
         @Override
         public void actionPerformed(@NotNull AnActionEvent e) {
-            //   setSelection(, );
         }
 
+    }
 
-        private void setSelection(String file, Range range) {
-        /*VirtualFile vf = FileUtils.virtualFileFromURI(file);
-        Document doc = Util.getDocument(vf);
-        Editor[] editors = EditorFactory.getInstance().getEditors(doc, project);
-        Position start = range.getStart();
-        int startOffset = doc.getLineStartOffset(start.getLine()) + start.getCharacter();
-        Position end = range.getEnd();
-        int endOffset = doc.getLineStartOffset(end.getLine()) + end.getCharacter();
+    private static class ShowRelatedInformationAction implements IntentionAction, Iconable {
 
-        Editor activeEditor;
-        if (editors.length > 0)
-            activeEditor = editors[0];
-        else {
-            activeEditor = EditorFactory.getInstance().createEditor(doc, project, EditorKind.MAIN_EDITOR);
-        }
-        activeEditor.getSelectionModel().setSelection(startOffset, endOffset);
-        activeEditor.getCaretModel().moveToOffset(startOffset);
-*/
+        private final Diagnostic diagnostic;
 
+        public ShowRelatedInformationAction(Diagnostic diagnostic) {
+            this.diagnostic = diagnostic;
         }
 
+        @Override
+        public @NotNull @IntentionName String getText() {
+            return "Find cause";
+        }
+
+        @Override
+        public @NotNull @IntentionFamilyName String getFamilyName() {
+            return "Lsp Find cause";
+        }
+
+        @Override
+        public boolean isAvailable(@NotNull Project project, Editor editor, PsiFile file) {
+            return true;
+        }
+
+        @Override
+        public void invoke(@NotNull Project project, Editor editor, PsiFile file) throws IncorrectOperationException {
+
+            List<AnAction> actions = new ArrayList<>();
+            for (DiagnosticRelatedInformation relatedInformation : diagnostic.getRelatedInformation()) {
+                actions.add(new RelatedInformationItem(relatedInformation));
+            }
+
+            String title = "Related Information";
+            DataContext context = DataManager.getInstance().getDataContext(editor.getComponent());
+            DefaultActionGroup group = new DefaultActionGroup(actions);
+
+            ListPopup popup = JBPopupFactory.getInstance()
+                    .createActionGroupPopup(title, group, context, JBPopupFactory.ActionSelectionAid.MNEMONICS, true);
+
+            popup.addListSelectionListener(event -> {
+                // preview selection
+                WriteCommandAction.runWriteCommandAction(project, () -> {
+                    @SuppressWarnings("rawtypes")
+                    JBList list = (JBList) event.getSource();
+                    DiagnosticRelatedInformation rInfo = diagnostic.getRelatedInformation().get(list.getSelectedIndex());
+                    final VirtualFile vf = FileUtils.virtualFileFromURI(rInfo.getLocation().getUri());
+                    if (vf == null) {
+                        return;
+                    }
+                    // focus editor matching for related informations uri
+                    Editor previewEditor = FileEditorManager.getInstance(project).openTextEditor(new OpenFileDescriptor(project,
+                            vf, rInfo.getLocation().getRange().getStart().getLine(), rInfo.getLocation().getRange().getStart().getCharacter()), true);
+                    if (previewEditor == null) {
+                        return;
+                    }
+
+                    // show hint on that location
+                    int flags = HintManager.HIDE_BY_ANY_KEY | HintManager.HIDE_BY_TEXT_CHANGE | HintManager.HIDE_BY_OTHER_HINT | HintManager.HIDE_BY_SCROLLING;
+                    JComponent hintText = new JLabel(rInfo.getMessage());
+                    LightweightHint hint = new LightweightHint(hintText);
+                    Point p = HintManagerImpl.getHintPosition(hint, previewEditor, previewEditor.logicalToVisualPosition(new LogicalPosition(rInfo.getLocation().getRange().getStart().getLine(), rInfo.getLocation().getRange().getStart().getCharacter())), HintManager.ABOVE);
+                    HintManagerImpl.getInstanceImpl().showEditorHint(hint,
+                            previewEditor,
+                            p,
+                            flags,
+                            -1,
+                            true,
+                            HintManagerImpl.createHintHint(previewEditor,
+                                    p,
+                                    hint,
+                                    HintManager.ABOVE).setContentActive(true));
+
+                });
+            });
+
+            final Point aPointOnComponent = editor.visualPositionToXY(editor.getCaretModel().getVisualPosition());
+            aPointOnComponent.y += (editor.getLineHeight() + 2);
+            popup.show(new RelativePoint(editor.getComponent(), aPointOnComponent));
+        }
+
+        @Override
+        public boolean startInWriteAction() {
+            return false;
+        }
+
+        @Override
+        public Icon getIcon(int flags) {
+            return AllIcons.Actions.IntentionBulb;
+        }
     }
 }
