@@ -300,18 +300,17 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
                 @SuppressWarnings("rawtypes")
                 JBList list = (JBList) event.getSource();
 
-                final String uri;
+                final VirtualFile vf;
                 final Range range;
                 if (list.getSelectedIndex() == 0) {
                     range = diagnostic.getRange();
-                    uri = FileUtils.VFSToURI(file.getVirtualFile());
+                    vf = file.getVirtualFile();
                 } else {
                     final DiagnosticRelatedInformation diagnosticRelatedInformation = diagnostic.getRelatedInformation().get(list.getSelectedIndex() - 1);
                     range = diagnosticRelatedInformation.getLocation().getRange();
-                    uri = diagnosticRelatedInformation.getLocation().getUri();
+                    vf = FileUtils.virtualFileFromURI(diagnosticRelatedInformation.getLocation().getUri());
                 }
 
-                final VirtualFile vf = FileUtils.virtualFileFromURI(uri);
                 if (vf == null) {
                     return;
                 }
@@ -338,7 +337,7 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
                 }
 
                 // TODO: change to TextAttributesKey to allow for custom higlightcolor
-                highlighter = model.addRangeHighlighter(from, to, HighlighterLayer.SELECTION, new TextAttributes(JBColor.PINK, JBColor.YELLOW, JBColor.RED, EffectType.BOXED, 0), HighlighterTargetArea.EXACT_RANGE);
+                highlighter = model.addRangeHighlighter(from, to, HighlighterLayer.SELECTION, new TextAttributes(JBColor.BLACK, JBColor.LIGHT_GRAY, null, EffectType.BOXED, 0), HighlighterTargetArea.EXACT_RANGE);
 
             });
 
