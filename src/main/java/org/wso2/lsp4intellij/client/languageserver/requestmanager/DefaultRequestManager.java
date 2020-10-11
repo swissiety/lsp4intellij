@@ -554,6 +554,7 @@ public class DefaultRequestManager implements RequestManager {
         if (checkStatus()) {
             try {
                 if (serverCapabilities.getDocumentLinkProvider() != null) {
+                    // TODO: [ms] implementation hint: EditorHyperlinkSupport
                     return textDocumentService.documentLink(params);
                 }
             } catch (Exception e) {

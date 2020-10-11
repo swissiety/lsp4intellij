@@ -15,8 +15,6 @@
  */
 package org.wso2.lsp4intellij.contributors.annotator;
 
-import com.intellij.codeInsight.hint.HintManager;
-import com.intellij.codeInsight.hint.HintManagerImpl;
 import com.intellij.codeInsight.intention.IntentionAction;
 import com.intellij.codeInspection.util.IntentionFamilyName;
 import com.intellij.codeInspection.util.IntentionName;
@@ -26,25 +24,25 @@ import com.intellij.lang.annotation.Annotation;
 import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.ExternalAnnotator;
 import com.intellij.lang.annotation.HighlightSeverity;
-import com.intellij.openapi.actionSystem.AnAction;
-import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.DataContext;
-import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.LogicalPosition;
+import com.intellij.openapi.editor.markup.MarkupModel;
+import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
+import com.intellij.openapi.ui.popup.JBPopupListener;
+import com.intellij.openapi.ui.popup.LightweightWindowEvent;
 import com.intellij.openapi.ui.popup.ListPopup;
 import com.intellij.openapi.util.Iconable;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
-import com.intellij.ui.LightweightHint;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.components.JBList;
 import com.intellij.util.IncorrectOperationException;
@@ -197,8 +195,10 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
             annotation.setTooltip( sb.toString());
         }
         */
-        annotation.registerFix(new ShowRelatedInformationAction(diagnostic));
 
+        if (diagnostic.getRelatedInformation() != null && !diagnostic.getRelatedInformation().isEmpty()) {
+            annotation.registerFix(new ShowRelatedInformationAction(diagnostic));
+        }
         return annotation;
     }
 
@@ -219,11 +219,19 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
         eventManager.setAnonHolder(holder);
     }
 
-    private static class RelatedInformationItem extends AnAction {
+    private static class InformationItem extends AnAction {
         @NotNull Location loc;
 
-        RelatedInformationItem(@NotNull DiagnosticRelatedInformation relatedInformation) {
-            super(relatedInformation.getMessage(), "Links to Related Information", null);
+        /**
+         * to display the origin item
+         */
+        InformationItem(@NotNull String uri, @NotNull Diagnostic diag) {
+            super(diag.getSource() == null || diag.getSource().isEmpty() ? "Origin" : diag.getSource(), "Links to origin", null);
+            loc = new Location(uri, diag.getRange());
+        }
+
+        InformationItem(@NotNull DiagnosticRelatedInformation relatedInformation) {
+            super(relatedInformation.getMessage(), "Links to related Information", null);
             loc = relatedInformation.getLocation();
         }
 
@@ -236,6 +244,7 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
     private static class ShowRelatedInformationAction implements IntentionAction, Iconable {
 
         private final Diagnostic diagnostic;
+        private RangeHighlighter highlighter = null;
 
         public ShowRelatedInformationAction(Diagnostic diagnostic) {
             this.diagnostic = diagnostic;
@@ -260,8 +269,11 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
         public void invoke(@NotNull Project project, Editor editor, PsiFile file) throws IncorrectOperationException {
 
             List<AnAction> actions = new ArrayList<>();
+            actions.add(new InformationItem(FileUtils.VFSToURI(file.getVirtualFile()), diagnostic));
+            actions.add(Separator.create());
+
             for (DiagnosticRelatedInformation relatedInformation : diagnostic.getRelatedInformation()) {
-                actions.add(new RelatedInformationItem(relatedInformation));
+                actions.add(new InformationItem(relatedInformation));
             }
 
             String title = "Related Information";
@@ -271,6 +283,15 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
             ListPopup popup = JBPopupFactory.getInstance()
                     .createActionGroupPopup(title, group, context, JBPopupFactory.ActionSelectionAid.MNEMONICS, true);
 
+            popup.addListener(new JBPopupListener() {
+                @Override
+                public void onClosed(@NotNull LightweightWindowEvent event) {
+                    if (highlighter != null) {
+                        editor.getMarkupModel().removeHighlighter(highlighter);
+                        highlighter = null;
+                    }
+                }
+            });
             popup.addListSelectionListener(event -> {
                 // preview selection
                 WriteCommandAction.runWriteCommandAction(project, () -> {
@@ -281,7 +302,7 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
                     if (vf == null) {
                         return;
                     }
-                    // focus editor matching for related informations uri
+                    // focus editor respective to selected related informations uri
                     Editor previewEditor = FileEditorManager.getInstance(project).openTextEditor(new OpenFileDescriptor(project,
                             vf, rInfo.getLocation().getRange().getStart().getLine(), rInfo.getLocation().getRange().getStart().getCharacter()), true);
                     if (previewEditor == null) {
@@ -289,20 +310,16 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
                     }
 
                     // show hint on that location
-                    int flags = HintManager.HIDE_BY_ANY_KEY | HintManager.HIDE_BY_TEXT_CHANGE | HintManager.HIDE_BY_OTHER_HINT | HintManager.HIDE_BY_SCROLLING;
-                    JComponent hintText = new JLabel(rInfo.getMessage());
-                    LightweightHint hint = new LightweightHint(hintText);
-                    Point p = HintManagerImpl.getHintPosition(hint, previewEditor, previewEditor.logicalToVisualPosition(new LogicalPosition(rInfo.getLocation().getRange().getStart().getLine(), rInfo.getLocation().getRange().getStart().getCharacter())), HintManager.ABOVE);
-                    HintManagerImpl.getInstanceImpl().showEditorHint(hint,
-                            previewEditor,
-                            p,
-                            flags,
-                            -1,
-                            true,
-                            HintManagerImpl.createHintHint(previewEditor,
-                                    p,
-                                    hint,
-                                    HintManager.ABOVE).setContentActive(true));
+                    MarkupModel model = editor.getMarkupModel();
+                    int from = editor.logicalPositionToOffset(new LogicalPosition(rInfo.getLocation().getRange().getStart().getLine(), rInfo.getLocation().getRange().getStart().getCharacter()));
+                    int to = editor.logicalPositionToOffset(new LogicalPosition(rInfo.getLocation().getRange().getEnd().getLine(), rInfo.getLocation().getRange().getEnd().getCharacter()));
+                    // detect: until end of line -> dont wrap to "before first character"
+                    to = rInfo.getLocation().getRange().getEnd().getCharacter() == 0 ? to - 1 : to;
+
+                    if (highlighter != null) {
+                        model.removeHighlighter(highlighter);
+                    }
+                    // TODO: add highlighting range: highlighter = model.addRangeHighlighter(from, to, 1, new TextAttributes( JBColor.PINK, JBColor.YELLOW, JBColor.RED, EffectType.BOXED, 0), HighlighterTargetArea.EXACT_RANGE);
 
                 });
             });
