@@ -25,13 +25,13 @@ import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.ExternalAnnotator;
 import com.intellij.lang.annotation.HighlightSeverity;
 import com.intellij.openapi.actionSystem.*;
-import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.LogicalPosition;
-import com.intellij.openapi.editor.markup.MarkupModel;
-import com.intellij.openapi.editor.markup.RangeHighlighter;
+import com.intellij.openapi.editor.ScrollType;
+import com.intellij.openapi.editor.ScrollingModel;
+import com.intellij.openapi.editor.markup.*;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.project.Project;
@@ -43,12 +43,14 @@ import com.intellij.openapi.util.Iconable;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
+import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.components.JBList;
 import com.intellij.util.IncorrectOperationException;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticRelatedInformation;
 import org.eclipse.lsp4j.Location;
+import org.eclipse.lsp4j.Range;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.wso2.lsp4intellij.IntellijLanguageClient;
@@ -292,37 +294,54 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
                     }
                 }
             });
+
             popup.addListSelectionListener(event -> {
                 // preview selection
-                WriteCommandAction.runWriteCommandAction(project, () -> {
-                    @SuppressWarnings("rawtypes")
-                    JBList list = (JBList) event.getSource();
-                    DiagnosticRelatedInformation rInfo = diagnostic.getRelatedInformation().get(list.getSelectedIndex());
-                    final VirtualFile vf = FileUtils.virtualFileFromURI(rInfo.getLocation().getUri());
-                    if (vf == null) {
-                        return;
-                    }
-                    // focus editor respective to selected related informations uri
-                    Editor previewEditor = FileEditorManager.getInstance(project).openTextEditor(new OpenFileDescriptor(project,
-                            vf, rInfo.getLocation().getRange().getStart().getLine(), rInfo.getLocation().getRange().getStart().getCharacter()), true);
-                    if (previewEditor == null) {
-                        return;
-                    }
+                @SuppressWarnings("rawtypes")
+                JBList list = (JBList) event.getSource();
 
-                    // show hint on that location
-                    MarkupModel model = editor.getMarkupModel();
-                    int from = editor.logicalPositionToOffset(new LogicalPosition(rInfo.getLocation().getRange().getStart().getLine(), rInfo.getLocation().getRange().getStart().getCharacter()));
-                    int to = editor.logicalPositionToOffset(new LogicalPosition(rInfo.getLocation().getRange().getEnd().getLine(), rInfo.getLocation().getRange().getEnd().getCharacter()));
-                    // detect: until end of line -> dont wrap to "before first character"
-                    to = rInfo.getLocation().getRange().getEnd().getCharacter() == 0 ? to - 1 : to;
+                final String uri;
+                final Range range;
+                if (list.getSelectedIndex() == 0) {
+                    range = diagnostic.getRange();
+                    uri = FileUtils.VFSToURI(file.getVirtualFile());
+                } else {
+                    final DiagnosticRelatedInformation diagnosticRelatedInformation = diagnostic.getRelatedInformation().get(list.getSelectedIndex() - 1);
+                    range = diagnosticRelatedInformation.getLocation().getRange();
+                    uri = diagnosticRelatedInformation.getLocation().getUri();
+                }
 
-                    if (highlighter != null) {
-                        model.removeHighlighter(highlighter);
-                    }
-                    // TODO: add highlighting range: highlighter = model.addRangeHighlighter(from, to, 1, new TextAttributes( JBColor.PINK, JBColor.YELLOW, JBColor.RED, EffectType.BOXED, 0), HighlighterTargetArea.EXACT_RANGE);
+                final VirtualFile vf = FileUtils.virtualFileFromURI(uri);
+                if (vf == null) {
+                    return;
+                }
+                // focus editor respective to selected related informations uri
+                Editor previewEditor = FileEditorManager.getInstance(project).openTextEditor(new OpenFileDescriptor(project, vf), true);
+                if (previewEditor == null) {
+                    return;
+                }
 
-                });
+                final ScrollingModel scrollingModel = previewEditor.getScrollingModel();
+                scrollingModel.scrollHorizontally(range.getStart().getLine());
+                scrollingModel.scrollTo(new LogicalPosition(range.getStart().getLine(), range.getStart().getCharacter()), ScrollType.CENTER_UP);
+
+                // show hint on that location
+                MarkupModel model = editor.getMarkupModel();
+                int from = editor.logicalPositionToOffset(new LogicalPosition(range.getStart().getLine(), range.getStart().getCharacter()));
+                int to = editor.logicalPositionToOffset(new LogicalPosition(range.getEnd().getLine(), range.getEnd().getCharacter()));
+                // detect: until end of line -> dont wrap to "before first character"
+                to = range.getEnd().getCharacter() == 0 ? to - 1 : to;
+
+                if (highlighter != null) {
+                    model.removeHighlighter(highlighter);
+                    highlighter.dispose();
+                }
+
+                // TODO: change to TextAttributesKey to allow for custom higlightcolor
+                highlighter = model.addRangeHighlighter(from, to, HighlighterLayer.SELECTION, new TextAttributes(JBColor.PINK, JBColor.YELLOW, JBColor.RED, EffectType.BOXED, 0), HighlighterTargetArea.EXACT_RANGE);
+
             });
+
 
             final Point aPointOnComponent = editor.visualPositionToXY(editor.getCaretModel().getVisualPosition());
             aPointOnComponent.y += (editor.getLineHeight() + 2);
