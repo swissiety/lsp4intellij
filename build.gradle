@@ -20,6 +20,7 @@ version = gitVersionCalculator.calculateVersion("");    // ms: v prefix fails
 intellij {
     version '2020.2'
     type = ['IC'];
+    updateSinceUntilBuild false
 }
 
 dependencies {
