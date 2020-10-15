@@ -15,6 +15,7 @@
  */
 package org.wso2.lsp4intellij.client.languageserver;
 
+import com.intellij.codeInsight.hint.HintManager;
 import com.intellij.ide.DataManager;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -83,14 +84,14 @@ public class LSPServerStatusWidget implements StatusBarWidget {
         Project project = wrapper.getProject();
         StatusBar statusBar = WindowManager.getInstance().getStatusBar(project);
 
-        if (widgetIDs.get(project) == null || widgetIDs.get(project).isEmpty()) {
-            ArrayList<String> list = new ArrayList<>();
-            list.add("Position");
-            widgetIDs.put(project, list);
+        List<String> stringList = widgetIDs.computeIfAbsent(project, k -> new ArrayList<>());
+        if (stringList.isEmpty()) {
+            // FIXME: [ms] does this make any sense? (placeholder?)
+            stringList.add("Position");
         }
 
-        statusBar.addWidget(widget, "before " + widgetIDs.get(project).get(0), ServiceManager.getService(IntellijLanguageClient.class));
-        widgetIDs.get(project).add(0, widget.ID());
+        statusBar.addWidget(widget, "before " + stringList.get(0), ServiceManager.getService(IntellijLanguageClient.class));
+        stringList.add(0, widget.ID());
         return widget;
     }
 
@@ -177,6 +178,12 @@ public class LSPServerStatusWidget implements StatusBarWidget {
         public Consumer<MouseEvent> getClickConsumer() {
             return (MouseEvent t) -> {
                 if (wrapper.getStatus() == ServerStatus.STOPPED) {
+
+                    final boolean restartable = wrapper.isRestartable();
+                    final JLabel label = new JLabel("trying to restart " + restartable);
+                    HintManager.getInstance().showHint(label,
+                            new RelativePoint(t.getComponent(), new Point(0, -label.getHeight())), 0, 500);
+
                     wrapper.restart();
                     return;
                 }
