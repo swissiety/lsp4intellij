@@ -271,7 +271,11 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
         public void invoke(@NotNull Project project, Editor editor, PsiFile file) throws IncorrectOperationException {
 
             List<AnAction> actions = new ArrayList<>();
-            actions.add(new InformationItem(FileUtils.VFSToURI(file.getVirtualFile()), diagnostic));
+            final String uri = FileUtils.VFSToURI(file.getVirtualFile());
+            if (uri == null) {
+                return;
+            }
+            actions.add(new InformationItem(uri, diagnostic));
             actions.add(Separator.create());
 
             for (DiagnosticRelatedInformation relatedInformation : diagnostic.getRelatedInformation()) {
@@ -341,10 +345,11 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
 
             });
 
-
             final Point aPointOnComponent = editor.visualPositionToXY(editor.getCaretModel().getVisualPosition());
             aPointOnComponent.y += (editor.getLineHeight() + 2);
+            // TODO: handle overlapping / hiding the highlight with popup
             popup.show(new RelativePoint(editor.getComponent(), aPointOnComponent));
+
         }
 
         @Override
