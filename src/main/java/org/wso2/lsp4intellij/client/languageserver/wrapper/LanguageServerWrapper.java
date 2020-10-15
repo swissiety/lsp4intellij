@@ -558,8 +558,10 @@ public class LanguageServerWrapper {
 
     public void crashed(Exception e) {
         crashCount += 1;
-        if (crashCount <= 3 || true) {
+        if (crashCount <= 3) {
             reconnect();
+            // FIXME: [ms] disable annoying dialog
+            alreadyShownCrash = true;
         } else {
             invokeLater(() -> {
                 if (alreadyShownCrash) {
