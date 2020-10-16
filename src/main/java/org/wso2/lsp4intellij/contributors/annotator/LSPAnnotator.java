@@ -15,12 +15,16 @@
  */
 package org.wso2.lsp4intellij.contributors.annotator;
 
+import com.intellij.analysis.problemsView.toolWindow.ProblemsView;
 import com.intellij.codeInsight.intention.IntentionAction;
 import com.intellij.codeInspection.util.IntentionFamilyName;
 import com.intellij.codeInspection.util.IntentionName;
 import com.intellij.icons.AllIcons;
 import com.intellij.ide.DataManager;
-import com.intellij.lang.annotation.*;
+import com.intellij.lang.annotation.Annotation;
+import com.intellij.lang.annotation.AnnotationHolder;
+import com.intellij.lang.annotation.ExternalAnnotator;
+import com.intellij.lang.annotation.HighlightSeverity;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -44,10 +48,7 @@ import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.components.JBList;
 import com.intellij.util.IncorrectOperationException;
-import org.eclipse.lsp4j.Diagnostic;
-import org.eclipse.lsp4j.DiagnosticRelatedInformation;
-import org.eclipse.lsp4j.Location;
-import org.eclipse.lsp4j.Range;
+import org.eclipse.lsp4j.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.wso2.lsp4intellij.IntellijLanguageClient;
@@ -66,10 +67,13 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
 
     private static final Logger LOG = Logger.getInstance(LSPAnnotator.class);
     private static final Object RESULT = new Object();
+    private ProblemsView problemView;
 
     @Nullable
     @Override
     public Object collectInformation(@NotNull PsiFile file, @NotNull Editor editor, boolean hasErrors) {
+
+        ProblemsView.getToolWindow(file.getProject());
 
         try {
             VirtualFile virtualFile = file.getVirtualFile();
@@ -187,17 +191,14 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
             StringBuilder sb = new StringBuilder();
             sb.append("<html>");
             sb.append(diagnostic.getMessage()).append("<br>");
-            sb.append("<ul>");
             for (DiagnosticRelatedInformation relatedInformation : diagnostic.getRelatedInformation()) {
-                String url = relatedInformation.getLocation().getUri();
-                String shortUri = url.substring(url.lastIndexOf('/') + 1);
 
                 sb.append("<a href=\"").append(relatedInformation.getLocation().getUri()).
                         append(":").append(relatedInformation.getLocation().getRange().getStart()).append("\">").
-                        append(shortUri).append("(").append(relatedInformation.getLocation().getRange().getStart().getLine()).append(",").append(relatedInformation.getLocation().getRange().getStart().getCharacter()).append(")</a> ").
+                        append(shortenFileUri(relatedInformation.getLocation().getUri())).append(positionToString(relatedInformation.getLocation().getRange().getStart())).append("</a> ").
                         append(relatedInformation.getMessage()).append("<br>");
             }
-            sb.append("</ul></html>");
+            sb.append("</html>");
             annotation.setTooltip(sb.toString());
 
             // TODO: related information into problemgroup?
@@ -228,6 +229,16 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
         eventManager.setAnonHolder(holder);
     }
 
+    static String shortenFileUri(String fileuri) {
+        return fileuri.substring(fileuri.lastIndexOf('/') + 1);
+    }
+
+    static String positionToString(Position pos) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("(").append(pos.getLine()).append(",").append(pos.getCharacter()).append(")");
+        return sb.toString();
+    }
+
     private static class InformationItem extends AnAction {
         @NotNull Location loc;
 
@@ -235,19 +246,18 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
          * to display the origin item
          */
         InformationItem(@NotNull String uri, @NotNull Diagnostic diag) {
-            super(diag.getSource() == null || diag.getSource().isEmpty() ? "Origin" : diag.getSource(), "Links to origin", null);
+            super("Origin", "Links to origin: " + shortenFileUri(uri) + " " + positionToString(diag.getRange().getStart()), null);
             loc = new Location(uri, diag.getRange());
         }
 
         InformationItem(@NotNull DiagnosticRelatedInformation relatedInformation) {
-            super(relatedInformation.getMessage(), "Links to related Information", null);
+            super(relatedInformation.getMessage(), "Links to related Information: " + shortenFileUri(relatedInformation.getLocation().getUri()) + " " + positionToString(relatedInformation.getLocation().getRange().getStart()), null);
             loc = relatedInformation.getLocation();
         }
 
         @Override
         public void actionPerformed(@NotNull AnActionEvent e) {
         }
-
     }
 
     private static class ShowRelatedInformationAction implements IntentionAction, Iconable {
