@@ -20,10 +20,7 @@ import com.intellij.codeInspection.util.IntentionFamilyName;
 import com.intellij.codeInspection.util.IntentionName;
 import com.intellij.icons.AllIcons;
 import com.intellij.ide.DataManager;
-import com.intellij.lang.annotation.Annotation;
-import com.intellij.lang.annotation.AnnotationHolder;
-import com.intellij.lang.annotation.ExternalAnnotator;
-import com.intellij.lang.annotation.HighlightSeverity;
+import com.intellij.lang.annotation.*;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -184,19 +181,29 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
         /*
         AnnotationBuilder annotationBuilder = holder.newAnnotation(severity, diagnostic.getMessage());
         annotationBuilder.range(textRange);
-
+*/
 
         if (diagnostic.getRelatedInformation() != null && !diagnostic.getRelatedInformation().isEmpty()) {
             StringBuilder sb = new StringBuilder();
-            sb.append("<html> <ul>");
+            sb.append("<html>");
+            sb.append(diagnostic.getMessage()).append("<br>");
+            sb.append("<ul>");
             for (DiagnosticRelatedInformation relatedInformation : diagnostic.getRelatedInformation()) {
-                sb.append("<li><a href=\"" + relatedInformation.getLocation().getUri() + ":" + relatedInformation.getLocation().getRange().getStart() + "\">").append(relatedInformation.getMessage()).append("</li>");
+                String url = relatedInformation.getLocation().getUri();
+                String shortUri = url.substring(url.lastIndexOf('/') + 1);
+
+                sb.append("<a href=\"").append(relatedInformation.getLocation().getUri()).
+                        append(":").append(relatedInformation.getLocation().getRange().getStart()).append("\">").
+                        append(shortUri).append("(").append(relatedInformation.getLocation().getRange().getStart().getLine()).append(",").append(relatedInformation.getLocation().getRange().getStart().getCharacter()).append(")</a> ").
+                        append(relatedInformation.getMessage()).append("<br>");
             }
             sb.append("</ul></html>");
+            annotation.setTooltip(sb.toString());
+
+            // TODO: related information into problemgroup?
+            //annotation.setProblemGroup();
             //annotationBuilder.tooltip( sb.toString() );
-            annotation.setTooltip( sb.toString());
         }
-        */
 
         if (diagnostic.getRelatedInformation() != null && !diagnostic.getRelatedInformation().isEmpty()) {
             annotation.registerFix(new ShowRelatedInformationAction(diagnostic));
