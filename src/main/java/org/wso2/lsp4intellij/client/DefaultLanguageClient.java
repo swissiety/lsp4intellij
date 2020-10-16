@@ -33,7 +33,10 @@ import org.wso2.lsp4intellij.utils.ApplicationUtils;
 import org.wso2.lsp4intellij.utils.FileUtils;
 
 import javax.swing.*;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -56,6 +59,42 @@ public class DefaultLanguageClient implements LanguageClient {
     public DefaultLanguageClient(@NotNull ClientContext context) {
         this.context = context;
     }
+
+    public InitializeParams getInitParams(String projectRootPath) {
+        InitializeParams initParams = new InitializeParams();
+        initParams.setRootUri(FileUtils.pathToUri(projectRootPath));
+        initParams.setWorkspaceFolders(ServiceManager.getService(IntellijLanguageClient.class).getWorkspaceFolderList(context.getProject()));
+
+        //TODO update capabilities when implemented
+        WorkspaceClientCapabilities workspaceClientCapabilities = new WorkspaceClientCapabilities();
+        workspaceClientCapabilities.setApplyEdit(true);
+        workspaceClientCapabilities.setDidChangeWatchedFiles(new DidChangeWatchedFilesCapabilities());
+        workspaceClientCapabilities.setExecuteCommand(new ExecuteCommandCapabilities());
+        workspaceClientCapabilities.setWorkspaceEdit(new WorkspaceEditCapabilities());
+        workspaceClientCapabilities.setSymbol(new SymbolCapabilities());
+        workspaceClientCapabilities.setWorkspaceFolders(true);
+        workspaceClientCapabilities.setConfiguration(false);
+
+        TextDocumentClientCapabilities textDocumentClientCapabilities = new TextDocumentClientCapabilities();
+        textDocumentClientCapabilities.setCodeAction(new CodeActionCapabilities());
+        textDocumentClientCapabilities.setCompletion(new CompletionCapabilities(new CompletionItemCapabilities(true)));
+        textDocumentClientCapabilities.setDefinition(new DefinitionCapabilities());
+        textDocumentClientCapabilities.setDocumentHighlight(new DocumentHighlightCapabilities());
+        textDocumentClientCapabilities.setFormatting(new FormattingCapabilities());
+        textDocumentClientCapabilities.setHover(new HoverCapabilities());
+        textDocumentClientCapabilities.setOnTypeFormatting(new OnTypeFormattingCapabilities());
+        textDocumentClientCapabilities.setRangeFormatting(new RangeFormattingCapabilities());
+        textDocumentClientCapabilities.setReferences(new ReferencesCapabilities());
+        textDocumentClientCapabilities.setRename(new RenameCapabilities());
+        textDocumentClientCapabilities.setSemanticHighlightingCapabilities(new SemanticHighlightingCapabilities(false));
+        textDocumentClientCapabilities.setSignatureHelp(new SignatureHelpCapabilities());
+        textDocumentClientCapabilities.setSynchronization(new SynchronizationCapabilities(true, true, true));
+        initParams.setCapabilities(
+                new ClientCapabilities(workspaceClientCapabilities, textDocumentClientCapabilities, null));
+
+        return initParams;
+    }
+
 
     @Override
     public CompletableFuture<ApplyWorkspaceEditResponse> applyEdit(ApplyWorkspaceEditParams params) {

@@ -32,40 +32,13 @@ import com.intellij.util.PlatformIcons;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.eclipse.lsp4j.ClientCapabilities;
-import org.eclipse.lsp4j.CodeActionCapabilities;
-import org.eclipse.lsp4j.CompletionCapabilities;
-import org.eclipse.lsp4j.CompletionItemCapabilities;
-import org.eclipse.lsp4j.DefinitionCapabilities;
-import org.eclipse.lsp4j.DidChangeWatchedFilesCapabilities;
-import org.eclipse.lsp4j.DocumentHighlightCapabilities;
-import org.eclipse.lsp4j.ExecuteCommandCapabilities;
-import org.eclipse.lsp4j.FormattingCapabilities;
-import org.eclipse.lsp4j.HoverCapabilities;
-import org.eclipse.lsp4j.InitializeParams;
-import org.eclipse.lsp4j.InitializeResult;
-import org.eclipse.lsp4j.InitializedParams;
-import org.eclipse.lsp4j.OnTypeFormattingCapabilities;
-import org.eclipse.lsp4j.RangeFormattingCapabilities;
-import org.eclipse.lsp4j.ReferencesCapabilities;
-import org.eclipse.lsp4j.RenameCapabilities;
-import org.eclipse.lsp4j.SemanticHighlightingCapabilities;
-import org.eclipse.lsp4j.ServerCapabilities;
-import org.eclipse.lsp4j.SignatureHelpCapabilities;
-import org.eclipse.lsp4j.SymbolCapabilities;
-import org.eclipse.lsp4j.SynchronizationCapabilities;
-import org.eclipse.lsp4j.TextDocumentClientCapabilities;
-import org.eclipse.lsp4j.TextDocumentSyncKind;
-import org.eclipse.lsp4j.TextDocumentSyncOptions;
-import org.eclipse.lsp4j.WorkspaceClientCapabilities;
-import org.eclipse.lsp4j.WorkspaceEditCapabilities;
+import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.jsonrpc.Launcher;
 import org.eclipse.lsp4j.jsonrpc.ResponseErrorException;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.jsonrpc.messages.Message;
 import org.eclipse.lsp4j.jsonrpc.messages.ResponseErrorCode;
 import org.eclipse.lsp4j.jsonrpc.messages.ResponseMessage;
-import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.LanguageServer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -93,34 +66,16 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.*;
+import java.util.concurrent.*;
 
-import static org.wso2.lsp4intellij.client.languageserver.ServerStatus.INITIALIZED;
-import static org.wso2.lsp4intellij.client.languageserver.ServerStatus.STARTED;
-import static org.wso2.lsp4intellij.client.languageserver.ServerStatus.STARTING;
-import static org.wso2.lsp4intellij.client.languageserver.ServerStatus.STOPPED;
+import static org.wso2.lsp4intellij.client.languageserver.ServerStatus.*;
 import static org.wso2.lsp4intellij.requests.Timeout.getTimeout;
 import static org.wso2.lsp4intellij.requests.Timeouts.INIT;
 import static org.wso2.lsp4intellij.requests.Timeouts.SHUTDOWN;
 import static org.wso2.lsp4intellij.utils.ApplicationUtils.computableReadAction;
 import static org.wso2.lsp4intellij.utils.ApplicationUtils.invokeLater;
-import static org.wso2.lsp4intellij.utils.FileUtils.editorToProjectFolderUri;
-import static org.wso2.lsp4intellij.utils.FileUtils.editorToURIString;
-import static org.wso2.lsp4intellij.utils.FileUtils.reloadEditors;
-import static org.wso2.lsp4intellij.utils.FileUtils.sanitizeURI;
+import static org.wso2.lsp4intellij.utils.FileUtils.*;
 
 /**
  * The implementation of a LanguageServerWrapper (specific to a serverDefinition and a project)
@@ -135,7 +90,7 @@ public class LanguageServerWrapper {
     private final Map<String, EditorEventManager> connectedEditors = new ConcurrentHashMap<>();
     private final LSPServerStatusWidget statusWidget;
     private LanguageServer languageServer;
-    private LanguageClient client;
+    private DefaultLanguageClient client;
     private RequestManager requestManager;
     private InitializeResult initializeResult;
     private Future<?> launcherFuture;
@@ -447,7 +402,6 @@ public class LanguageServerWrapper {
                 Pair<InputStream, OutputStream> streams = serverDefinition.start(projectRootPath);
                 InputStream inputStream = streams.getKey();
                 OutputStream outputStream = streams.getValue();
-                InitializeParams initParams = getInitParams();
                 ExecutorService executorService = Executors.newCachedThreadPool();
                 MessageHandler messageHandler = new MessageHandler(serverDefinition.getServerListener(), () -> getStatus() != STOPPED);
                 if (extManager != null && extManager.getExtendedServerInterface() != null) {
@@ -469,6 +423,7 @@ public class LanguageServerWrapper {
                 }
                 messageHandler.setLanguageServer(languageServer);
 
+                InitializeParams initParams = client.getInitParams(projectRootPath);
                 initializeFuture = languageServer.initialize(initParams).thenApply(res -> {
                     initializeResult = res;
                     LOG.info("Got initializeResult for " + serverDefinition + " ; " + projectRootPath);
@@ -494,43 +449,6 @@ public class LanguageServerWrapper {
                 removeServerWrapper();
             }
         }
-    }
-
-    private InitializeParams getInitParams() {
-        InitializeParams initParams = new InitializeParams();
-        initParams.setRootUri(FileUtils.pathToUri(projectRootPath));
-        initParams.setWorkspaceFolders(ServiceManager.getService(IntellijLanguageClient.class).getWorkspaceFolderList(project));
-
-        //TODO update capabilities when implemented
-        WorkspaceClientCapabilities workspaceClientCapabilities = new WorkspaceClientCapabilities();
-        workspaceClientCapabilities.setApplyEdit(true);
-        workspaceClientCapabilities.setDidChangeWatchedFiles(new DidChangeWatchedFilesCapabilities());
-        workspaceClientCapabilities.setExecuteCommand(new ExecuteCommandCapabilities());
-        workspaceClientCapabilities.setWorkspaceEdit(new WorkspaceEditCapabilities());
-        workspaceClientCapabilities.setSymbol(new SymbolCapabilities());
-        workspaceClientCapabilities.setWorkspaceFolders(true);
-        workspaceClientCapabilities.setConfiguration(false);
-
-        TextDocumentClientCapabilities textDocumentClientCapabilities = new TextDocumentClientCapabilities();
-        textDocumentClientCapabilities.setCodeAction(new CodeActionCapabilities());
-        textDocumentClientCapabilities.setCompletion(new CompletionCapabilities(new CompletionItemCapabilities(true)));
-        textDocumentClientCapabilities.setDefinition(new DefinitionCapabilities());
-        textDocumentClientCapabilities.setDocumentHighlight(new DocumentHighlightCapabilities());
-        textDocumentClientCapabilities.setFormatting(new FormattingCapabilities());
-        textDocumentClientCapabilities.setHover(new HoverCapabilities());
-        textDocumentClientCapabilities.setOnTypeFormatting(new OnTypeFormattingCapabilities());
-        textDocumentClientCapabilities.setRangeFormatting(new RangeFormattingCapabilities());
-        textDocumentClientCapabilities.setReferences(new ReferencesCapabilities());
-        textDocumentClientCapabilities.setRename(new RenameCapabilities());
-        textDocumentClientCapabilities.setSemanticHighlightingCapabilities(new SemanticHighlightingCapabilities(false));
-        textDocumentClientCapabilities.setSignatureHelp(new SignatureHelpCapabilities());
-        textDocumentClientCapabilities.setSynchronization(new SynchronizationCapabilities(true, true, true));
-        initParams.setCapabilities(
-                new ClientCapabilities(workspaceClientCapabilities, textDocumentClientCapabilities, null));
-        initParams.setInitializationOptions(
-                serverDefinition.getInitializationOptions(URI.create(initParams.getRootUri())));
-
-        return initParams;
     }
 
     public void logMessage(Message message) {

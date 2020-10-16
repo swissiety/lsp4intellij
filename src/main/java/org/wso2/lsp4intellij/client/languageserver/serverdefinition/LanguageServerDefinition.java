@@ -23,7 +23,6 @@ import org.wso2.lsp4intellij.client.connection.StreamConnectionProvider;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.URI;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -70,10 +69,6 @@ public class LanguageServerDefinition {
         } else {
             LOG.warn("No connection for workingDir " + workingDir + " and ext " + ext);
         }
-    }
-
-    public Object getInitializationOptions(URI uri) {
-        return null;
     }
 
     @Override
