@@ -185,16 +185,16 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
         annotationBuilder.range(textRange);
 */
 
+        // TODO: escape html from external input before it goes into tooltip!
         if (diagnostic.getRelatedInformation() != null && !diagnostic.getRelatedInformation().isEmpty()) {
             StringBuilder sb = new StringBuilder();
             sb.append("<html>");
-            sb.append(diagnostic.getMessage()).append("<br>");
+            sb.append(diagnostic.getMessage().replaceAll("\n", "<br>")).append("<br>");
             final String source = diagnostic.getSource();
             if (source != null && !source.isEmpty()) {
-                sb.append("<span color='GREY'>").append(source).append("</span><br>");
+                sb.append("<span color='GREY'>[").append(source).append("]</span><br>");
             }
             for (DiagnosticRelatedInformation relatedInformation : diagnostic.getRelatedInformation()) {
-
                 final VirtualFile hrefVf = FileUtils.virtualFileFromURI(relatedInformation.getLocation().getUri());
                 if(hrefVf != null) {
                     sb.append("<a href=\"#navigation/").append(hrefVf.toNioPath()).
@@ -207,9 +207,6 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
             }
             sb.append("</html>");
             annotation.setTooltip(sb.toString());
-
-            // TODO: related information into problemgroup?
-            //annotation.setProblemGroup();
             //annotationBuilder.tooltip( sb.toString() );
         }
 
