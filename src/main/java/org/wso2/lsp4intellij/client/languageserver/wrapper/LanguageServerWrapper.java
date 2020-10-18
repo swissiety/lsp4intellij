@@ -446,8 +446,10 @@ public class LanguageServerWrapper {
                 invokeLater(() ->
                         notifier.showMessage(String.format("Can't start server due to %s", e.getMessage()),
                                 MessageType.WARNING));
-                removeServerWrapper();
+                // removeServerWrapper();
                 setStatus(STOPPED);
+                alreadyShownTimeout = false;
+                alreadyShownCrash = false;
             }
         }
     }
@@ -476,11 +478,9 @@ public class LanguageServerWrapper {
     }
 
     public void crashed(Exception e) {
-        crashCount += 1;
+        crashCount++;
         if (crashCount <= 3) {
             reconnect();
-            // FIXME: [ms] disable annoying dialog
-            alreadyShownCrash = true;
         } else {
             invokeLater(() -> {
                 if (alreadyShownCrash) {
@@ -597,7 +597,7 @@ public class LanguageServerWrapper {
      * restartable if it has timeout or has a startup error.
      */
     public boolean isRestartable() {
-        return status == STOPPED && (alreadyShownTimeout || alreadyShownCrash);
+        return status == STOPPED;
     }
 
     /**
@@ -605,6 +605,7 @@ public class LanguageServerWrapper {
      */
     public void restart() {
         if (isRestartable()) {
+            start();
             alreadyShownCrash = false;
             alreadyShownTimeout = false;
             reloadEditors(project);
