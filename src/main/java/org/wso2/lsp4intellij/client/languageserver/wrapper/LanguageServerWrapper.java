@@ -447,6 +447,7 @@ public class LanguageServerWrapper {
                         notifier.showMessage(String.format("Can't start server due to %s", e.getMessage()),
                                 MessageType.WARNING));
                 removeServerWrapper();
+                setStatus(STOPPED);
             }
         }
     }
