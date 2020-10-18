@@ -275,6 +275,10 @@ public class FileUtils {
         return sanitizeURI(VFSToURI(FileDocumentManager.getInstance().getFile(document)));
     }
 
+    public static String shortenFileUri(String fileuri) {
+        return fileuri.substring(fileuri.lastIndexOf('/') + 1);
+    }
+
     /**
      * Object representing the OS type (Windows or Unix)
      */

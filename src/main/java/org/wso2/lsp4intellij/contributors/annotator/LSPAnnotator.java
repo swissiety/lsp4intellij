@@ -73,8 +73,6 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
     @Override
     public Object collectInformation(@NotNull PsiFile file, @NotNull Editor editor, boolean hasErrors) {
 
-        ProblemsView.getToolWindow(file.getProject());
-
         try {
             VirtualFile virtualFile = file.getVirtualFile();
 
@@ -191,11 +189,15 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
             StringBuilder sb = new StringBuilder();
             sb.append("<html>");
             sb.append(diagnostic.getMessage()).append("<br>");
+            final String source = diagnostic.getSource();
+            if (source != null && !source.isEmpty()) {
+                sb.append("<span color='GREY'>").append(source).append("</span><br>");
+            }
             for (DiagnosticRelatedInformation relatedInformation : diagnostic.getRelatedInformation()) {
 
                 sb.append("<a href=\"").append(relatedInformation.getLocation().getUri()).
                         append(":").append(relatedInformation.getLocation().getRange().getStart()).append("\">").
-                        append(shortenFileUri(relatedInformation.getLocation().getUri())).append(positionToString(relatedInformation.getLocation().getRange().getStart())).append("</a> ").
+                        append(FileUtils.shortenFileUri(relatedInformation.getLocation().getUri())).append(positionToString(relatedInformation.getLocation().getRange().getStart())).append("</a> ").
                         append(relatedInformation.getMessage()).append("<br>");
             }
             sb.append("</html>");
@@ -229,10 +231,6 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
         eventManager.setAnonHolder(holder);
     }
 
-    static String shortenFileUri(String fileuri) {
-        return fileuri.substring(fileuri.lastIndexOf('/') + 1);
-    }
-
     static String positionToString(Position pos) {
         StringBuilder sb = new StringBuilder();
         sb.append("(").append(pos.getLine()).append(",").append(pos.getCharacter()).append(")");
@@ -246,12 +244,12 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
          * to display the origin item
          */
         InformationItem(@NotNull String uri, @NotNull Diagnostic diag) {
-            super("Origin", "Links to origin: " + shortenFileUri(uri) + " " + positionToString(diag.getRange().getStart()), null);
+            super("Origin", "Links to origin: " + FileUtils.shortenFileUri(uri) + " " + positionToString(diag.getRange().getStart()), null);
             loc = new Location(uri, diag.getRange());
         }
 
         InformationItem(@NotNull DiagnosticRelatedInformation relatedInformation) {
-            super(relatedInformation.getMessage(), "Links to related Information: " + shortenFileUri(relatedInformation.getLocation().getUri()) + " " + positionToString(relatedInformation.getLocation().getRange().getStart()), null);
+            super(relatedInformation.getMessage(), "Links to related Information: " + FileUtils.shortenFileUri(relatedInformation.getLocation().getUri()) + " " + positionToString(relatedInformation.getLocation().getRange().getStart()), null);
             loc = relatedInformation.getLocation();
         }
 
