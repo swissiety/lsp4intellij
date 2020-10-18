@@ -195,10 +195,15 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
             }
             for (DiagnosticRelatedInformation relatedInformation : diagnostic.getRelatedInformation()) {
 
-                sb.append("<a href=\"").append(relatedInformation.getLocation().getUri()).
-                        append(":").append(relatedInformation.getLocation().getRange().getStart()).append("\">").
-                        append(FileUtils.shortenFileUri(relatedInformation.getLocation().getUri())).append(positionToString(relatedInformation.getLocation().getRange().getStart())).append("</a> ").
-                        append(relatedInformation.getMessage()).append("<br>");
+                final VirtualFile hrefVf = FileUtils.virtualFileFromURI(relatedInformation.getLocation().getUri());
+                if(hrefVf != null) {
+                    sb.append("<a href=\"#navigation/").append(hrefVf.toNioPath()).
+                            append(":").append(relatedInformation.getLocation().getRange().getStart().getLine()).append("\">").
+                            append(FileUtils.shortenFileUri(relatedInformation.getLocation().getUri())).append(positionToString(relatedInformation.getLocation().getRange().getStart())).append("</a> ");
+                }else{
+                    sb.append("<span color='GRAY'>").append(FileUtils.shortenFileUri(relatedInformation.getLocation().getUri())).append(positionToString(relatedInformation.getLocation().getRange().getStart())).append("</span> ");
+                }
+                sb.append(relatedInformation.getMessage()).append("<br>");
             }
             sb.append("</html>");
             annotation.setTooltip(sb.toString());
