@@ -39,6 +39,8 @@ import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
 import java.util.List;
 
+import static org.apache.commons.lang.StringEscapeUtils.escapeHtml;
+
 public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
 
     private static final Logger LOG = Logger.getInstance(LSPAnnotator.class);
@@ -168,14 +170,29 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
         return annotation;
     }
 
+    private void createAnnotations(AnnotationHolder holder, EditorEventManager eventManager) {
+        final List<Diagnostic> diagnostics = eventManager.getDiagnostics();
+        final Editor editor = eventManager.editor;
+
+        List<Annotation> annotations = new ArrayList<>();
+        diagnostics.forEach(d -> {
+            Annotation annotation = createAnnotation(editor, holder, d);
+            if (annotation != null) {
+                annotations.add(annotation);
+            }
+        });
+
+        eventManager.setAnnotations(annotations);
+        eventManager.setAnonHolder(holder);
+    }
+
     @NotNull
     private String buildTooltipHtml(Diagnostic diagnostic) {
         StringBuilder sb = new StringBuilder();
         sb.append("<html><div style='margin:5px 0;'>").
-                append(diagnostic.getMessage().replaceAll("\n", "<br>")).
+                append(escapeHtml(diagnostic.getMessage()).replaceAll("\n", "<br>")).
                 append("</div>");
 
-        // FIXME: escape html from external input before it goes into tooltip!
         if (diagnostic.getRelatedInformation() != null && !diagnostic.getRelatedInformation().isEmpty()) {
 
             for (DiagnosticRelatedInformation relatedInformation : diagnostic.getRelatedInformation()) {
@@ -185,9 +202,9 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
                             append(":").append(relatedInformation.getLocation().getRange().getStart().getLine()).append("\">").
                             append(FileUtils.shortenFileUri(relatedInformation.getLocation().getUri())).append(FileUtils.positionToString(relatedInformation.getLocation().getRange().getStart())).append("</a> ");
                 }else{
-                    sb.append("<span color='GRAY'>").append(FileUtils.shortenFileUri(relatedInformation.getLocation().getUri())).append(FileUtils.positionToString(relatedInformation.getLocation().getRange().getStart())).append("</span> ");
+                    sb.append("<span color='GRAY'>").append(escapeHtml(FileUtils.shortenFileUri(relatedInformation.getLocation().getUri()))).append(escapeHtml(FileUtils.positionToString(relatedInformation.getLocation().getRange().getStart()))).append("</span> ");
                 }
-                sb.append(" ").append(relatedInformation.getMessage()).append("<br>");
+                sb.append(" ").append(escapeHtml(relatedInformation.getMessage())).append("<br>");
             }
         }
 
@@ -206,32 +223,15 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
         if( hasCode || hasSource) {
             sb.append("<div style='color:GRAY;text-align:right;'>");
             if (hasCode) {
-                sb.append(code).append(" ");
+                sb.append(escapeHtml(code)).append(" ");
             }
             if (hasSource) {
-                sb.append(source);
+                sb.append(escapeHtml(source));
             }
             sb.append("</div>");
         }
         sb.append("</html>");
         return sb.toString();
-    }
-
-
-    private void createAnnotations(AnnotationHolder holder, EditorEventManager eventManager) {
-        final List<Diagnostic> diagnostics = eventManager.getDiagnostics();
-        final Editor editor = eventManager.editor;
-
-        List<Annotation> annotations = new ArrayList<>();
-        diagnostics.forEach(d -> {
-            Annotation annotation = createAnnotation(editor, holder, d);
-            if (annotation != null) {
-                annotations.add(annotation);
-            }
-        });
-
-        eventManager.setAnnotations(annotations);
-        eventManager.setAnonHolder(holder);
     }
 
 }
