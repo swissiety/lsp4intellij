@@ -177,10 +177,8 @@ public class LSPServerStatusWidget implements StatusBarWidget {
         @Override
         public Consumer<MouseEvent> getClickConsumer() {
             return (MouseEvent t) -> {
-                if (wrapper.getStatus() == ServerStatus.STOPPED) {
-
-                    final boolean restartable = wrapper.isRestartable();
-                    final JLabel label = new JLabel("trying to restart");
+                if (wrapper.isRestartable()) {
+                    final JLabel label = new JLabel("restarting");
                     HintManager.getInstance().showHint(label,
                             new RelativePoint(t.getComponent(), new Point(0, -label.getHeight())), 0, 500);
 
