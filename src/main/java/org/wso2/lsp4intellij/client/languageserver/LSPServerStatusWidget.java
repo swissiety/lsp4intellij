@@ -180,7 +180,7 @@ public class LSPServerStatusWidget implements StatusBarWidget {
                 if (wrapper.getStatus() == ServerStatus.STOPPED) {
 
                     final boolean restartable = wrapper.isRestartable();
-                    final JLabel label = new JLabel("trying to restart " + restartable);
+                    final JLabel label = new JLabel("trying to restart");
                     HintManager.getInstance().showHint(label,
                             new RelativePoint(t.getComponent(), new Point(0, -label.getHeight())), 0, 500);
 

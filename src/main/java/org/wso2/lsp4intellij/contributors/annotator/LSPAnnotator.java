@@ -185,15 +185,24 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
         annotationBuilder.range(textRange);
 */
 
-        // TODO: escape html from external input before it goes into tooltip!
+        annotation.setTooltip(buildTooltipHtml(diagnostic));
+
         if (diagnostic.getRelatedInformation() != null && !diagnostic.getRelatedInformation().isEmpty()) {
-            StringBuilder sb = new StringBuilder();
-            sb.append("<html>");
-            sb.append(diagnostic.getMessage().replaceAll("\n", "<br>")).append("<br>");
-            final String source = diagnostic.getSource();
-            if (source != null && !source.isEmpty()) {
-                sb.append("<span color='GREY'>[").append(source).append("]</span><br>");
-            }
+            annotation.registerFix(new ShowRelatedInformationAction(diagnostic));
+        }
+        return annotation;
+    }
+
+    @NotNull
+    private String buildTooltipHtml(Diagnostic diagnostic) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<html><div style='margin:5px 0;'>").
+                append(diagnostic.getMessage().replaceAll("\n", "<br>")).
+                append("</div>");
+
+        // FIXME: escape html from external input before it goes into tooltip!
+        if (diagnostic.getRelatedInformation() != null && !diagnostic.getRelatedInformation().isEmpty()) {
+
             for (DiagnosticRelatedInformation relatedInformation : diagnostic.getRelatedInformation()) {
                 final VirtualFile hrefVf = FileUtils.virtualFileFromURI(relatedInformation.getLocation().getUri());
                 if(hrefVf != null) {
@@ -203,17 +212,34 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
                 }else{
                     sb.append("<span color='GRAY'>").append(FileUtils.shortenFileUri(relatedInformation.getLocation().getUri())).append(positionToString(relatedInformation.getLocation().getRange().getStart())).append("</span> ");
                 }
-                sb.append(relatedInformation.getMessage()).append("<br>");
+                sb.append(" ").append(relatedInformation.getMessage()).append("<br>");
             }
-            sb.append("</html>");
-            annotation.setTooltip(sb.toString());
-            //annotationBuilder.tooltip( sb.toString() );
         }
 
-        if (diagnostic.getRelatedInformation() != null && !diagnostic.getRelatedInformation().isEmpty()) {
-            annotation.registerFix(new ShowRelatedInformationAction(diagnostic));
+        String code = "";
+        boolean hasCode = false, hasSource = false;
+        if (diagnostic.getCode() != null) {
+            code = diagnostic.getCode().toString();
+            if (!code.isEmpty()) {
+                hasCode = true;
+            }
         }
-        return annotation;
+        final String source = diagnostic.getSource();
+        if (source != null && !source.isEmpty()) {
+            hasSource = true;
+        }
+        if( hasCode || hasSource) {
+            sb.append("<div style='color:GRAY;text-align:right;'>");
+            if (hasCode) {
+                sb.append(code).append(" ");
+            }
+            if (hasSource) {
+                sb.append(source);
+            }
+            sb.append("</div>");
+        }
+        sb.append("</html>");
+        return sb.toString();
     }
 
 
