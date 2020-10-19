@@ -15,7 +15,6 @@
  */
 package org.wso2.lsp4intellij.client.languageserver.wrapper;
 
-import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
@@ -25,8 +24,6 @@ import com.intellij.openapi.fileEditor.TextEditor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.MessageType;
 import com.intellij.openapi.ui.Messages;
-import com.intellij.psi.PsiDocumentManager;
-import com.intellij.psi.PsiFile;
 import com.intellij.remoteServer.util.CloudNotifier;
 import com.intellij.util.PlatformIcons;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -73,7 +70,6 @@ import static org.wso2.lsp4intellij.client.languageserver.ServerStatus.*;
 import static org.wso2.lsp4intellij.requests.Timeout.getTimeout;
 import static org.wso2.lsp4intellij.requests.Timeouts.INIT;
 import static org.wso2.lsp4intellij.requests.Timeouts.SHUTDOWN;
-import static org.wso2.lsp4intellij.utils.ApplicationUtils.computableReadAction;
 import static org.wso2.lsp4intellij.utils.ApplicationUtils.invokeLater;
 import static org.wso2.lsp4intellij.utils.FileUtils.*;
 
@@ -308,15 +304,6 @@ public class LanguageServerWrapper {
                         for (Editor ed : toConnect) {
                             connect(ed);
                         }
-                        // Triggers annotators since this is the first editor which starts the LS
-                        // and annotators are executed before LS is bootstrap to provide diagnostics.
-                        computableReadAction(() -> {
-                            PsiFile psiFile = PsiDocumentManager.getInstance(project).getPsiFile(editor.getDocument());
-                            if (psiFile != null) {
-                                DaemonCodeAnalyzer.getInstance(project).restart(psiFile);
-                            }
-                            return null;
-                        });
                     }
                 } catch (Exception e) {
                     LOG.error(e);
