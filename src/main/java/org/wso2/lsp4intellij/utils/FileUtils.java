@@ -34,6 +34,7 @@ import com.intellij.psi.PsiFile;
 import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.testFramework.LightVirtualFileBase;
+import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -279,7 +280,11 @@ public class FileUtils {
         return fileuri.substring(fileuri.lastIndexOf('/') + 1);
     }
 
-    /**
+    public static String positionToString(Position pos) {
+        return "(" + pos.getLine() + "," + pos.getCharacter() + ")";
+    }
+
+  /**
      * Object representing the OS type (Windows or Unix)
      */
     public enum OS {
