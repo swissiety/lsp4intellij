@@ -110,11 +110,7 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
     }
 
     private void updateAnnotations(AnnotationHolder holder, EditorEventManager eventManager) {
-        final List<Annotation> annotations = eventManager.getAnnotations();
-        if (annotations == null) {
-            return;
-        }
-        annotations.forEach(annotation -> {
+        eventManager.getAnnotations().forEach(annotation -> {
             // TODO: Use 'newAnnotation'; 'createAnnotation' is deprecated.
             Annotation anon = holder.createAnnotation(annotation.getSeverity(),
                     new TextRange(annotation.getStartOffset(), annotation.getEndOffset()), annotation.getMessage());
@@ -171,11 +167,10 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
     }
 
     private void createAnnotations(AnnotationHolder holder, EditorEventManager eventManager) {
-        final List<Diagnostic> diagnostics = eventManager.getDiagnostics();
         final Editor editor = eventManager.editor;
 
         List<Annotation> annotations = new ArrayList<>();
-        diagnostics.forEach(d -> {
+        eventManager.getDiagnostics().forEach(d -> {
             Annotation annotation = createAnnotation(editor, holder, d);
             if (annotation != null) {
                 annotations.add(annotation);

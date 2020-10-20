@@ -134,7 +134,7 @@ public class EditorEventManager {
 
     private final List<Diagnostic> diagnostics = new ArrayList<>();
     private AnnotationHolder anonHolder;
-    private List<Annotation> annotations = new ArrayList<>();
+    @NotNull private List<Annotation> annotations = new ArrayList<>();
     private volatile boolean diagnosticSyncRequired = true;
     private volatile boolean codeActionSyncRequired = false;
 
@@ -445,12 +445,13 @@ public class EditorEventManager {
     /**
      * @return The current diagnostic annotations
      */
+    @NotNull
     public synchronized List<Annotation> getAnnotations() {
         this.codeActionSyncRequired = false;
         return this.annotations;
     }
 
-    public synchronized void setAnnotations(List<Annotation> annotations) {
+    public synchronized void setAnnotations(@NotNull List<Annotation> annotations) {
         this.annotations = annotations;
     }
 
