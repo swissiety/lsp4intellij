@@ -511,10 +511,12 @@ public class DefaultRequestManager implements RequestManager {
     public CompletableFuture<List<Either<Command, CodeAction>>> codeAction(CodeActionParams params) {
         if (checkStatus()) {
             try {
-                return checkCodeActionProvider(serverCapabilities.getCodeActionProvider()) ? textDocumentService.codeAction(params) : null;
+                Either<Boolean, CodeActionOptions> provider = serverCapabilities.getCodeActionProvider();
+                if (provider != null && (provider.getLeft() == Boolean.TRUE || provider.getRight() != null)) {
+                    return textDocumentService.codeAction(params);
+                }
             } catch (Exception e) {
                 crashed(e);
-                return null;
             }
         }
         return null;
@@ -629,7 +631,4 @@ public class DefaultRequestManager implements RequestManager {
         wrapper.crashed(e);
     }
 
-    private boolean checkCodeActionProvider(Either<Boolean, CodeActionOptions> provider) {
-        return provider != null && (provider.getLeft() == Boolean.TRUE || provider.getRight() != null);
-    }
 }
