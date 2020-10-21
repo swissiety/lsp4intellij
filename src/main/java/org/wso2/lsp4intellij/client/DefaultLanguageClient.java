@@ -76,6 +76,7 @@ public class DefaultLanguageClient implements LanguageClient {
         workspaceClientCapabilities.setConfiguration(false);
 
         TextDocumentClientCapabilities textDocumentClientCapabilities = new TextDocumentClientCapabilities();
+        textDocumentClientCapabilities.setPublishDiagnostics( new PublishDiagnosticsCapabilities(true, new DiagnosticsTagSupport(), false));
         textDocumentClientCapabilities.setCodeAction(new CodeActionCapabilities());
         textDocumentClientCapabilities.setCompletion(new CompletionCapabilities(new CompletionItemCapabilities(true)));
         textDocumentClientCapabilities.setDefinition(new DefinitionCapabilities());
