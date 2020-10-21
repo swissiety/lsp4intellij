@@ -112,19 +112,19 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
     private void updateAnnotations(AnnotationHolder holder, EditorEventManager eventManager) {
         eventManager.getAnnotations().forEach(annotation -> {
             // TODO: Use 'newAnnotation'; 'createAnnotation' is deprecated.
-            Annotation anon = holder.createAnnotation(annotation.getSeverity(),
+            Annotation anno = holder.createAnnotation(annotation.getSeverity(),
                     new TextRange(annotation.getStartOffset(), annotation.getEndOffset()), annotation.getMessage());
 
             if (annotation.getQuickFixes() == null || annotation.getQuickFixes().isEmpty()) {
                 return;
             }
-            annotation.getQuickFixes().forEach(quickFixInfo -> anon.registerFix(quickFixInfo.quickFix));
+            annotation.getQuickFixes().forEach(quickFixInfo -> anno.registerFix(quickFixInfo.quickFix));
         });
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
     @Nullable
-    protected Annotation createAnnotation(Editor editor, AnnotationHolder holder, Diagnostic diagnostic) {
+    protected Annotation createDiagnosticAnnotation(Editor editor, AnnotationHolder holder, Diagnostic diagnostic) {
         final int start = DocumentUtils.LSPPosToOffset(editor, diagnostic.getRange().getStart());
         final int end = DocumentUtils.LSPPosToOffset(editor, diagnostic.getRange().getEnd());
         if (start >= end) {
@@ -135,23 +135,21 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
         final HighlightSeverity severity;
         Annotation annotation;
         switch (diagnostic.getSeverity()) {
-            // TODO: Use 'newAnnotation'; 'create*Annotation' methods are deprecated.
             case Error:
                 severity = HighlightSeverity.ERROR;
-                annotation = holder.createErrorAnnotation(textRange, diagnostic.getMessage());
                 break;
             case Warning:
                 severity = HighlightSeverity.WARNING;
-                annotation = holder.createWarningAnnotation(textRange, diagnostic.getMessage());
                 break;
             case Information:
                 severity = HighlightSeverity.INFORMATION;
-                annotation = holder.createInfoAnnotation(textRange, diagnostic.getMessage());
                 break;
             default:
                 severity = HighlightSeverity.WEAK_WARNING;
-                annotation = holder.createWeakWarningAnnotation(textRange, diagnostic.getMessage());
         }
+
+        // TODO: Use 'newAnnotation'; 'create*Annotation' methods are deprecated.
+        annotation = holder.createAnnotation(severity, textRange, diagnostic.getMessage());
 
         /*
         AnnotationBuilder annotationBuilder = holder.newAnnotation(severity, diagnostic.getMessage());
@@ -171,7 +169,7 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
 
         List<Annotation> annotations = new ArrayList<>();
         eventManager.getDiagnostics().forEach(d -> {
-            Annotation annotation = createAnnotation(editor, holder, d);
+            Annotation annotation = createDiagnosticAnnotation(editor, holder, d);
             if (annotation != null) {
                 annotations.add(annotation);
             }
@@ -195,9 +193,9 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
                 if(hrefVf != null) {
                     sb.append("<a href=\"#navigation/").append(hrefVf.toNioPath()).
                             append(":").append(relatedInformation.getLocation().getRange().getStart().getLine()).append("\">").
-                            append(FileUtils.shortenFileUri(relatedInformation.getLocation().getUri())).append(FileUtils.positionToString(relatedInformation.getLocation().getRange().getStart())).append("</a> ");
+                            append(FileUtils.shortenFileUri(relatedInformation.getLocation().getUri())).append(" ").append(FileUtils.positionToString(relatedInformation.getLocation().getRange().getStart())).append("</a> ");
                 }else{
-                    sb.append("<span color='GRAY'>").append(escapeHtml(FileUtils.shortenFileUri(relatedInformation.getLocation().getUri()))).append(escapeHtml(FileUtils.positionToString(relatedInformation.getLocation().getRange().getStart()))).append("</span> ");
+                    sb.append("<span color='GRAY'>").append(escapeHtml(FileUtils.shortenFileUri(relatedInformation.getLocation().getUri()))).append(" ").append(escapeHtml(FileUtils.positionToString(relatedInformation.getLocation().getRange().getStart()))).append("</span> ");
                 }
                 sb.append(" ").append(escapeHtml(relatedInformation.getMessage())).append("<br>");
             }
