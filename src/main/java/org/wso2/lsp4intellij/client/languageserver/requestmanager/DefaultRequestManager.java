@@ -630,7 +630,6 @@ public class DefaultRequestManager implements RequestManager {
     }
 
     private boolean checkCodeActionProvider(Either<Boolean, CodeActionOptions> provider) {
-        return provider != null && ((provider.isLeft() && provider.getLeft()) || (provider.isRight()
-                && provider.getRight() != null));
+        return provider != null && (provider.getLeft() == Boolean.TRUE || provider.getRight() != null);
     }
 }
