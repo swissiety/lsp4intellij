@@ -18,17 +18,6 @@ package org.wso2.lsp4intellij.contributors.symbol;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import com.intellij.openapi.vfs.VirtualFile;
 import org.eclipse.lsp4j.Location;
 import org.eclipse.lsp4j.SymbolInformation;
@@ -40,9 +29,21 @@ import org.wso2.lsp4intellij.client.languageserver.serverdefinition.LanguageServ
 import org.wso2.lsp4intellij.client.languageserver.wrapper.LanguageServerWrapper;
 import org.wso2.lsp4intellij.contributors.icon.LSPIconProvider;
 import org.wso2.lsp4intellij.contributors.label.LSPLabelProvider;
+import org.wso2.lsp4intellij.requests.Timeout;
 import org.wso2.lsp4intellij.requests.Timeouts;
 import org.wso2.lsp4intellij.utils.FileUtils;
 import org.wso2.lsp4intellij.utils.GUIUtils;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * The workspace symbole provider implementation based on LSP
@@ -95,8 +96,8 @@ public class WorkspaceSymbolProvider {
 
     try {
       List<? extends SymbolInformation> symbolInformations = request
-          .get(20000, TimeUnit.MILLISECONDS);
-      wrapper.notifySuccess(Timeouts.SYMBOLS);
+          .get(Timeout.getTimeout(Timeouts.WORKSPACESYMBOLS), TimeUnit.MILLISECONDS);
+      wrapper.notifySuccess(Timeouts.WORKSPACESYMBOLS);
       return symbolInformations.stream()
           .map(si -> new LSPSymbolResult(si, wrapper.getServerDefinition()));
     } catch (TimeoutException e) {
