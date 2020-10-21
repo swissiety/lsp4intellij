@@ -26,7 +26,6 @@ import org.wso2.lsp4intellij.client.languageserver.ServerStatus;
 import org.wso2.lsp4intellij.client.languageserver.wrapper.LanguageServerWrapper;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -36,13 +35,13 @@ public class DefaultRequestManager implements RequestManager {
 
     private Logger LOG = Logger.getInstance(DefaultRequestManager.class);
 
-    private LanguageServerWrapper wrapper;
-    private LanguageServer server;
-    private LanguageClient client;
-    private ServerCapabilities serverCapabilities;
-    private TextDocumentSyncOptions textDocumentOptions;
-    private WorkspaceService workspaceService;
-    private TextDocumentService textDocumentService;
+    private final LanguageServerWrapper wrapper;
+    private final LanguageServer server;
+    private final LanguageClient client;
+    private final ServerCapabilities serverCapabilities;
+    private final TextDocumentSyncOptions textDocumentOptions;
+    private final WorkspaceService workspaceService;
+    private final TextDocumentService textDocumentService;
 
     public DefaultRequestManager(LanguageServerWrapper wrapper, LanguageServer server, LanguageClient client,
                                  ServerCapabilities serverCapabilities) {
@@ -231,7 +230,8 @@ public class DefaultRequestManager implements RequestManager {
     public CompletableFuture<List<? extends SymbolInformation>> symbol(WorkspaceSymbolParams params) {
         if (checkStatus()) {
             try {
-                return serverCapabilities.getWorkspaceSymbolProvider() ? workspaceService.symbol(params) : null;
+                // this can be null!
+                return serverCapabilities.getWorkspaceSymbolProvider() == Boolean.TRUE ? workspaceService.symbol(params) : null;
             } catch (Exception e) {
                 crashed(e);
                 return null;
@@ -283,7 +283,7 @@ public class DefaultRequestManager implements RequestManager {
     public void willSave(WillSaveTextDocumentParams params) {
         if (checkStatus()) {
             try {
-                if (Optional.ofNullable(textDocumentOptions).map(TextDocumentSyncOptions::getWillSave).orElse(false)) {
+                if (textDocumentOptions != null && textDocumentOptions.getWillSave() == Boolean.TRUE ) {
                     textDocumentService.willSave(params);
                 }
             } catch (Exception e) {
@@ -296,7 +296,7 @@ public class DefaultRequestManager implements RequestManager {
     public CompletableFuture<List<TextEdit>> willSaveWaitUntil(WillSaveTextDocumentParams params) {
         if (checkStatus()) {
             try {
-                return Optional.ofNullable(textDocumentOptions).map(TextDocumentSyncOptions::getWillSaveWaitUntil).orElse(false) ?
+                return textDocumentOptions != null && textDocumentOptions.getWillSaveWaitUntil() == Boolean.TRUE ?
                         textDocumentService.willSaveWaitUntil(params) : null;
             } catch (Exception e) {
                 crashed(e);
@@ -323,7 +323,7 @@ public class DefaultRequestManager implements RequestManager {
     public void didClose(DidCloseTextDocumentParams params) {
         if (checkStatus()) {
             try {
-                if (Optional.ofNullable(textDocumentOptions).map(TextDocumentSyncOptions::getOpenClose).orElse(false)) {
+                if (textDocumentOptions != null && textDocumentOptions.getOpenClose() == Boolean.TRUE) {
                     textDocumentService.didClose(params);
                 }
             } catch (Exception e) {
@@ -350,8 +350,8 @@ public class DefaultRequestManager implements RequestManager {
     public CompletableFuture<CompletionItem> resolveCompletionItem(CompletionItem unresolved) {
         if (checkStatus()) {
             try {
-                if (Optional.ofNullable(serverCapabilities.getCompletionProvider())
-                        .map(CompletionOptions::getResolveProvider).orElse(false)) {
+                final CompletionOptions cProvider = serverCapabilities.getCompletionProvider();
+                if (cProvider != null && cProvider.getResolveProvider() == Boolean.TRUE ) {
                     return textDocumentService.resolveCompletionItem(unresolved);
                 }
             } catch (Exception e) {
