@@ -204,7 +204,7 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
         String code = "";
         boolean hasCode = false, hasSource = false;
         if (diagnostic.getCode() != null) {
-            code = diagnostic.getCode().toString();
+            code = diagnostic.getCode().get().toString();
             if (!code.isEmpty()) {
                 hasCode = true;
             }
