@@ -15,7 +15,6 @@
  */
 package org.wso2.lsp4intellij.client.languageserver.wrapper;
 
-import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.fileEditor.FileEditor;
@@ -39,7 +38,6 @@ import org.eclipse.lsp4j.jsonrpc.messages.ResponseMessage;
 import org.eclipse.lsp4j.services.LanguageServer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.wso2.lsp4intellij.IntellijLanguageClient;
 import org.wso2.lsp4intellij.client.DefaultLanguageClient;
 import org.wso2.lsp4intellij.client.ServerWrapperBaseClientContext;
 import org.wso2.lsp4intellij.client.languageserver.LSPServerStatusWidget;
@@ -545,12 +543,6 @@ public class LanguageServerWrapper {
             manager.documentClosed();
             uriToLanguageServerWrapper.remove(new ImmutablePair<>(sanitizeURI(uri), sanitizeURI(projectUri)));
         }
-    }
-
-    public void removeServerWrapper() {
-        stop(true);
-        removeWidget();
-        ServiceManager.getService(IntellijLanguageClient.class).removeWrapper(this);
     }
 
     private void connect(String uri) {
