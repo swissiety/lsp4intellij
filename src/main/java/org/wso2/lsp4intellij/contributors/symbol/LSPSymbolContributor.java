@@ -32,7 +32,7 @@ import java.util.Optional;
  *
  * @author gayanper
  */
-public class LSPSymbolContributor implements ChooseByNameContributorEx {
+public final class LSPSymbolContributor implements ChooseByNameContributorEx {
 
     private final WorkspaceSymbolProvider workspaceSymbolProvider = new WorkspaceSymbolProvider();
 

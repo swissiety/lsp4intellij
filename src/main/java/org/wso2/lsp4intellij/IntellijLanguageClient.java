@@ -377,7 +377,10 @@ public final class IntellijLanguageClient implements Disposable {
 
     @Override
     public void dispose() {
-        extToLanguageWrapper.forEach((p, w) -> w.stop(false));
+        extToLanguageWrapper.forEach((p, w) -> {
+            w.stop(true);
+            w.removeWidget();
+        });
     }
 
     private void processDefinition(LanguageServerDefinition definition, String projectUri) {
