@@ -353,7 +353,7 @@ public final class IntellijLanguageClient implements Disposable {
             wrapper.stop(true);
             wrapper.removeWidget();
         } else {
-            LOG.error("No attached projects found for wrapper");
+            LOG.error("No attached projects found for wrapper.");
         }
     }
 
@@ -379,8 +379,10 @@ public final class IntellijLanguageClient implements Disposable {
 
     @Override
     public void dispose() {
-        extToLanguageWrapper.forEach((p, w) -> {
-            removeWrapper(w);
+        pool(() ->{
+            extToLanguageWrapper.forEach((p, w) -> {
+                removeWrapper(w);
+            });
         });
     }
 
