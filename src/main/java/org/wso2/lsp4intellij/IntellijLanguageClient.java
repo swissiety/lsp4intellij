@@ -350,6 +350,8 @@ public final class IntellijLanguageClient implements Disposable {
                 extToLanguageWrapper.remove(new MutablePair<>(ext, FileUtils.pathToUri(
                         new File(wrapper.getProjectRootPath()).getAbsolutePath())));
             }
+            wrapper.stop(true);
+            wrapper.removeWidget();
         } else {
             LOG.error("No attached projects found for wrapper");
         }
@@ -378,8 +380,7 @@ public final class IntellijLanguageClient implements Disposable {
     @Override
     public void dispose() {
         extToLanguageWrapper.forEach((p, w) -> {
-            w.stop(true);
-            w.removeWidget();
+            removeWrapper(w);
         });
     }
 
