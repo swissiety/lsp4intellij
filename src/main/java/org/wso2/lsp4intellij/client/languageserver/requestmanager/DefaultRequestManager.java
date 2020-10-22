@@ -218,6 +218,7 @@ public class DefaultRequestManager implements RequestManager {
 
     @Override
     public void didChangeWatchedFiles(DidChangeWatchedFilesParams params) {
+        // FIXME: [ms] only send notifications to the server for previously requested files
         if (checkStatus()) {
             try {
                 workspaceService.didChangeWatchedFiles(params);
@@ -234,10 +235,9 @@ public class DefaultRequestManager implements RequestManager {
                 return serverCapabilities.getWorkspaceSymbolProvider() == Boolean.TRUE ? workspaceService.symbol(params) : null;
             } catch (Exception e) {
                 crashed(e);
-                return null;
             }
-        } else
-            return null;
+        }
+        return null;
     }
 
     public CompletableFuture<Object> executeCommand(ExecuteCommandParams params) {

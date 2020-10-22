@@ -151,10 +151,10 @@ public class LanguageServerWrapper {
      */
     public boolean isWillSaveWaitUntil() {
         return Optional.ofNullable(getServerCapabilities())
-          .map(ServerCapabilities::getTextDocumentSync)
-          .map(Either::getRight)
-          .map(TextDocumentSyncOptions::getWillSaveWaitUntil)
-          .orElse(false);
+                .map(ServerCapabilities::getTextDocumentSync)
+                .map(Either::getRight)
+                .map(TextDocumentSyncOptions::getWillSaveWaitUntil)
+                .orElse(false);
     }
 
     /**
@@ -163,10 +163,11 @@ public class LanguageServerWrapper {
      * @return the languageServer capabilities, or null if initialization job didn't complete
      */
     @Nullable
+    // TODO: [ms] cleanup layer of responsibility
     public ServerCapabilities getServerCapabilities() {
-        if (initializeResult != null)
+        if (initializeResult != null) {
             return initializeResult.getCapabilities();
-        else {
+        } else {
             try {
                 start();
                 if (initializeFuture != null) {
@@ -318,6 +319,18 @@ public class LanguageServerWrapper {
         }
     }
 
+    /* cleanup if underlying connection e.g. the socket failed */
+    public void connectionFailed() {
+        if (initializeFuture != null) {
+            initializeFuture.cancel(true);
+            initializeFuture = null;
+        }
+        initializeResult = null;
+        capabilitiesAlreadyRequested = false;
+        languageServer = null;
+        setStatus(STOPPED);
+    }
+
     /*
      * The shutdown request is sent from the client to the server. It asks the server to shut down, but to not exit \
      * (otherwise the response might not be delivered correctly to the client).
@@ -338,14 +351,14 @@ public class LanguageServerWrapper {
 
                 CompletableFuture<Object> shutdown = languageServer.shutdown();
                 shutdown.get(getTimeout(SHUTDOWN), TimeUnit.MILLISECONDS);
-                notifySuccess(Timeouts.SHUTDOWN);
+                notifySuccess(SHUTDOWN);
                 if (exit) {
                     languageServer.exit();
                 }
             }
         } catch (Exception e) {
             // most likely closed externally.
-            notifyFailure(Timeouts.SHUTDOWN);
+            notifyFailure(SHUTDOWN);
         } finally {
             if (launcherFuture != null) {
                 launcherFuture.cancel(true);
@@ -362,11 +375,11 @@ public class LanguageServerWrapper {
     /**
      * Checks if the wrapper is already connected to the document at the given path.
      *
-     * @param location file location
+     * @param fileUri file location
      * @return True if the given file is connected.
      */
-    public boolean isConnectedTo(String location) {
-        return connectedEditors.containsKey(location);
+    public boolean isConnectedTo(String fileUri) {
+        return connectedEditors.containsKey(fileUri);
     }
 
     /**
@@ -410,7 +423,7 @@ public class LanguageServerWrapper {
                     languageServer = launcher.getRemoteProxy();
                     launcherFuture = launcher.startListening();
                 }
-                messageHandler.setLanguageServer(languageServer);
+                messageHandler.setLanguageServerWrapper(this);
 
                 InitializeParams initParams = client.getInitParams(projectRootPath);
                 initializeFuture = languageServer.initialize(initParams).thenApply(res -> {
@@ -435,10 +448,7 @@ public class LanguageServerWrapper {
                 invokeLater(() ->
                         notifier.showMessage(String.format("Can't start server due to %s", e.getMessage()),
                                 MessageType.WARNING));
-                // removeServerWrapper();
                 setStatus(STOPPED);
-                alreadyShownTimeout = false;
-                alreadyShownCrash = false;
             }
         }
     }
@@ -617,5 +627,5 @@ public class LanguageServerWrapper {
     public final LSPExtensionManager getExtensionManager() {
         return extManager;
     }
-}
 
+}
