@@ -89,10 +89,9 @@ public class LanguageServerWrapper {
     private LanguageServer languageServer;
     private DefaultLanguageClient client;
     private RequestManager requestManager;
-    private InitializeResult initializeResult;
+    private InitializeResult initializeResult = null;
     private Future<?> launcherFuture;
     private CompletableFuture<InitializeResult> initializeFuture;
-    private boolean capabilitiesAlreadyRequested = false;
     private int crashCount = 0;
     private volatile boolean alreadyShownTimeout = false;
     private volatile boolean alreadyShownCrash = false;
@@ -163,35 +162,7 @@ public class LanguageServerWrapper {
      * @return the languageServer capabilities, or null if initialization job didn't complete
      */
     @Nullable
-    // TODO: [ms] cleanup layer of responsibility
     public ServerCapabilities getServerCapabilities() {
-        if (initializeResult != null) {
-            return initializeResult.getCapabilities();
-        } else {
-            try {
-                start();
-                if (initializeFuture != null) {
-                    initializeFuture.get((capabilitiesAlreadyRequested ? 0 : getTimeout(INIT)), TimeUnit.MILLISECONDS);
-                    notifySuccess(INIT);
-                }
-            } catch (TimeoutException e) {
-                notifyFailure(INIT);
-                String msg = String.format("%s \n is not initialized after %d seconds",
-                        serverDefinition.toString(), getTimeout(INIT) / 1000);
-                LOG.warn(msg, e);
-                invokeLater(() -> {
-                    if (!alreadyShownTimeout) {
-                        notifier.showMessage(msg, MessageType.WARNING);
-                        alreadyShownTimeout = true;
-                    }
-                });
-                stop(false);
-            } catch (Exception e) {
-                LOG.warn(e);
-                stop(false);
-            }
-        }
-        capabilitiesAlreadyRequested = true;
         return initializeResult != null ? initializeResult.getCapabilities() : null;
     }
 
@@ -254,11 +225,33 @@ public class LanguageServerWrapper {
         }
         start();
         if (initializeFuture != null) {
-            ServerCapabilities capabilities = getServerCapabilities();
-            if (capabilities == null) {
-                LOG.warn("Capabilities are null for " + serverDefinition);
-                return;
+            final ServerCapabilities capabilities;
+            if (initializeResult == null) {
+                try{
+                    initializeFuture.get(( initializeFuture.isDone() ? 0 : getTimeout(INIT)), TimeUnit.MILLISECONDS);
+                    notifySuccess(INIT);
+                } catch (TimeoutException e) {
+                    notifyFailure(INIT);
+                    String msg = String.format("%s \n is not initialized after %d seconds",
+                            serverDefinition.toString(), getTimeout(INIT) / 1000);
+                    LOG.warn(msg, e);
+                    invokeLater(() -> {
+                        if (!alreadyShownTimeout) {
+                            notifier.showMessage(msg, MessageType.WARNING);
+                            alreadyShownTimeout = true;
+                        }
+                    });
+                    stop(false);
+                    LOG.warn("Capabilities are null for " + serverDefinition);
+                    return;
+                } catch (Exception e) {
+                    LOG.warn(e);
+                    stop(false);
+                    LOG.warn("Capabilities are null for " + serverDefinition);
+                    return;
+                }
             }
+            capabilities = getServerCapabilities();
 
             // runnables are getting chained/queued and executed even when initializeFuture is already done
             initializeFuture.thenRun(() -> {
@@ -326,7 +319,6 @@ public class LanguageServerWrapper {
             initializeFuture = null;
         }
         initializeResult = null;
-        capabilitiesAlreadyRequested = false;
         languageServer = null;
         setStatus(STOPPED);
     }
@@ -343,7 +335,6 @@ public class LanguageServerWrapper {
                 initializeFuture = null;
             }
             initializeResult = null;
-            capabilitiesAlreadyRequested = false;
             if (languageServer != null) {
                 for (Map.Entry<String, EditorEventManager> ed : connectedEditors.entrySet()) {
                     disconnect(ed.getValue().editor);
@@ -387,10 +378,6 @@ public class LanguageServerWrapper {
      */
     @Nullable
     public LanguageServer getServer() {
-        start();
-        if (initializeFuture != null && !initializeFuture.isDone()) {
-            initializeFuture.join();
-        }
         return languageServer;
     }
 
