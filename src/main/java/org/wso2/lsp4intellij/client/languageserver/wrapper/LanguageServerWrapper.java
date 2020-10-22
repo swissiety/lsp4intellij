@@ -534,10 +534,6 @@ public class LanguageServerWrapper {
             manager.documentClosed();
             uriToLanguageServerWrapper.remove(new ImmutablePair<>(editorToURIString(editor), editorToProjectFolderUri(editor)));
         }
-
-        if (connectedEditors.isEmpty()) {
-            stop(true);
-        }
     }
 
     /**
