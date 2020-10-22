@@ -331,6 +331,10 @@ public class LanguageServerWrapper {
             initializeResult = null;
             capabilitiesAlreadyRequested = false;
             if (languageServer != null) {
+                for (Map.Entry<String, EditorEventManager> ed : connectedEditors.entrySet()) {
+                    disconnect(ed.getValue().editor);
+                }
+
                 CompletableFuture<Object> shutdown = languageServer.shutdown();
                 shutdown.get(getTimeout(SHUTDOWN), TimeUnit.MILLISECONDS);
                 notifySuccess(Timeouts.SHUTDOWN);
@@ -348,9 +352,6 @@ public class LanguageServerWrapper {
             }
             if (serverDefinition != null) {
                 serverDefinition.stop(projectRootPath);
-            }
-            for (Map.Entry<String, EditorEventManager> ed : connectedEditors.entrySet()) {
-                disconnect(ed.getValue().editor);
             }
             languageServer = null;
             setStatus(STOPPED);
@@ -528,12 +529,7 @@ public class LanguageServerWrapper {
      * @param editor The editor
      */
     public void disconnect(Editor editor) {
-        EditorEventManager manager = connectedEditors.remove(editorToURIString(editor));
-        if (manager != null) {
-            manager.removeListeners();
-            manager.documentClosed();
-            uriToLanguageServerWrapper.remove(new ImmutablePair<>(editorToURIString(editor), editorToProjectFolderUri(editor)));
-        }
+        disconnect(editorToURIString(editor), editorToProjectFolderUri(editor) );
     }
 
     /**
@@ -548,9 +544,6 @@ public class LanguageServerWrapper {
             manager.removeListeners();
             manager.documentClosed();
             uriToLanguageServerWrapper.remove(new ImmutablePair<>(sanitizeURI(uri), sanitizeURI(projectUri)));
-        }
-        if (connectedEditors.isEmpty()) {
-            stop(true);
         }
     }
 
