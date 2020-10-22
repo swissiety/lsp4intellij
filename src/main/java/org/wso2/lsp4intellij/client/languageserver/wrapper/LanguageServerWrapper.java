@@ -15,14 +15,17 @@
  */
 package org.wso2.lsp4intellij.client.languageserver.wrapper;
 
+import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.TextEditor;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.MessageType;
 import com.intellij.openapi.ui.Messages;
+import com.intellij.openapi.util.NlsContexts;
 import com.intellij.remoteServer.util.CloudNotifier;
 import com.intellij.util.PlatformIcons;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -472,11 +475,36 @@ public class LanguageServerWrapper {
                 if (alreadyShownCrash) {
                     reconnect();
                 } else {
-                    // TODO: [ms] that way it is annoying for the user (and for the lsp server dev)
-                    int response = Messages.showYesNoDialog(String.format(
+                    int response = Messages.showYesNoDialog(project, String.format(
                             "LanguageServer for definition %s, project %s keeps crashing due to \n%s\n"
                             , serverDefinition.toString(), project.getName(), e.getMessage()),
-                            "Language Server Client Warning", "Keep Connected", "Disconnect", PlatformIcons.CHECK_ICON);
+                            "Language Server Client Warning", "Keep Connected", "Disconnect", PlatformIcons.CHECK_ICON, new DialogWrapper.DoNotAskOption(){
+
+                                @Override
+                                public boolean isToBeShown() {
+                                    return PropertiesComponent.getInstance(project).getBoolean("lsp.showcrashmessage", true);
+                                }
+
+                                @Override
+                                public void setToBeShown(boolean toBeShown, int exitCode) {
+                                    PropertiesComponent.getInstance(project).setValue("lsp.showcrashmessage", toBeShown, true);
+                                }
+
+                                @Override
+                                public boolean canBeHidden() {
+                                    return false;
+                                }
+
+                                @Override
+                                public boolean shouldSaveOptionsOnCancel() {
+                                    return false;
+                                }
+
+                                @Override
+                                public @NotNull @NlsContexts.Checkbox String getDoNotShowMessage() {
+                                    return "Remember choice and don't ask again?";
+                                }
+                            });
                     if (response == Messages.NO) {
                         int confirm = Messages.showYesNoDialog("All the language server based plugin features will be disabled.\n" +
                                 "Do you wish to continue?", "", PlatformIcons.WARNING_INTRODUCTION_ICON);
