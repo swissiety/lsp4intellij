@@ -50,6 +50,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.codeStyle.CommonCodeStyleSettings;
 import com.intellij.ui.Hint;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.lsp4j.*;
@@ -620,7 +621,10 @@ public class EditorEventManager {
             }
             DocumentFormattingParams params = new DocumentFormattingParams();
             params.setTextDocument(identifier);
-            FormattingOptions options = new FormattingOptions();
+
+            final boolean insertSpaces = false;     // TODO: adapt to intellij config
+            FormattingOptions options = new FormattingOptions(getTabSize(), insertSpaces);
+
             params.setOptions(options);
 
             CompletableFuture<List<? extends TextEdit>> request = requestManager.formatting(params);
@@ -652,7 +656,8 @@ public class EditorEventManager {
             Position endPos = DocumentUtils.offsetToLSPPos(editor, end);
             params.setRange(new Range(startingPos, endPos));
             // Todo - Make Formatting Options configurable
-            FormattingOptions options = new FormattingOptions();
+            boolean insertSpaces = false;
+            FormattingOptions options = new FormattingOptions(getTabSize(), insertSpaces);
             params.setOptions(options);
 
             CompletableFuture<List<? extends TextEdit>> request = requestManager.rangeFormatting(params);
@@ -670,6 +675,18 @@ public class EditorEventManager {
                 });
             });
         });
+    }
+
+    public int getTabSize() {
+        PsiFile psifile = PsiDocumentManager.getInstance(project).getPsiFile(editor.getDocument());
+        CommonCodeStyleSettings commonCodeStyleSettings = new CommonCodeStyleSettings(psifile.getLanguage());
+        int tabSize;
+        if(commonCodeStyleSettings.getIndentOptions() != null) {
+            tabSize = commonCodeStyleSettings.getIndentOptions().TAB_SIZE;
+        }else{
+            tabSize = editor.getSettings().getTabSize(editor.getProject());
+        }
+        return tabSize;
     }
 
     public void rename(String renameTo) {
