@@ -681,8 +681,9 @@ public class EditorEventManager {
         PsiFile psifile = PsiDocumentManager.getInstance(project).getPsiFile(editor.getDocument());
         CommonCodeStyleSettings commonCodeStyleSettings = new CommonCodeStyleSettings(psifile.getLanguage());
         int tabSize;
-        if(commonCodeStyleSettings.getIndentOptions() != null) {
-            tabSize = commonCodeStyleSettings.getIndentOptions().TAB_SIZE;
+        final CommonCodeStyleSettings.IndentOptions indentOptions = commonCodeStyleSettings.getIndentOptions();
+        if(indentOptions != null) {
+            tabSize = indentOptions.TAB_SIZE;
         }else{
             tabSize = editor.getSettings().getTabSize(editor.getProject());
         }
