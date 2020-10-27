@@ -307,7 +307,7 @@ public class FileUtils {
             return false;
         }
 
-        return ServiceManager.getService(IntellijLanguageClient.class).isExtensionSupported(file);
+        return ServiceManager.getService(IntellijLanguageClient.class).isExtensionSupporting(file);
     }
 
     /**

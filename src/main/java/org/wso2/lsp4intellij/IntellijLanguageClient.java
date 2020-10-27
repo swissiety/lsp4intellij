@@ -178,7 +178,7 @@ public final class IntellijLanguageClient implements Disposable {
      * @param virtualFile The virtual file instance to be validated
      * @return True if there is a LanguageServer supporting this extension, false otherwise
      */
-    public boolean isExtensionSupported(VirtualFile virtualFile) {
+    public boolean isExtensionSupporting(VirtualFile virtualFile) {
         return extToServerDefinition.keySet().stream().anyMatch(keyMap ->
                 keyMap.getLeft().equals(virtualFile.getExtension()) || (virtualFile.getName().matches(keyMap.getLeft())));
     }

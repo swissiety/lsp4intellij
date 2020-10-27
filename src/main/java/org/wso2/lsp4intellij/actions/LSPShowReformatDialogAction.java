@@ -53,7 +53,7 @@ public class LSPShowReformatDialogAction extends ShowReformatFileDialog implemen
             PsiFile psiFile = PsiDocumentManager.getInstance(project).getPsiFile(editor.getDocument());
             VirtualFile virFile = FileDocumentManager.getInstance().getFile(editor.getDocument());
             boolean alreadySupported = !LanguageFormatting.INSTANCE.allForLanguage(psiFile.getLanguage()).isEmpty();
-            if (!alreadySupported && ServiceManager.getService(IntellijLanguageClient.class).isExtensionSupported(virFile)) {
+            if (!alreadySupported && ServiceManager.getService(IntellijLanguageClient.class).isExtensionSupporting(virFile)) {
                 boolean hasSelection = editor.getSelectionModel().hasSelection();
                 LayoutCodeDialog dialog = new LayoutCodeDialog(project, psiFile, hasSelection, HELP_ID);
                 dialog.show();
