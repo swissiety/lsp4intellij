@@ -16,6 +16,8 @@
 package org.wso2.lsp4intellij.client.languageserver.wrapper;
 
 import com.intellij.ide.util.PropertiesComponent;
+import com.intellij.notification.Notification;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.fileEditor.FileEditor;
@@ -23,10 +25,8 @@ import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.TextEditor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
-import com.intellij.openapi.ui.MessageType;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.NlsContexts;
-import com.intellij.remoteServer.util.CloudNotifier;
 import com.intellij.util.PlatformIcons;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.MutablePair;
@@ -99,7 +99,6 @@ public class LanguageServerWrapper {
     private static final Map<Pair<String, String>, LanguageServerWrapper> uriToLanguageServerWrapper =
             new ConcurrentHashMap<>();
     private static final Logger LOG = Logger.getInstance(LanguageServerWrapper.class);
-    private static final CloudNotifier notifier = new CloudNotifier("Language Server Protocol client");
 
     public LanguageServerWrapper(@NotNull LanguageServerDefinition serverDefinition, @NotNull Project project) {
         this(serverDefinition, project, null);
@@ -234,15 +233,15 @@ public class LanguageServerWrapper {
                     notifyFailure(INIT);
                     String msg = String.format("%s \n is not initialized after %d seconds",
                             serverDefinition.toString(), getTimeout(INIT) / 1000);
-                    LOG.warn(msg, e);
+                    LOG.info(msg, e);
                     invokeLater(() -> {
                         if (!alreadyShownTimeout) {
-                            notifier.showMessage(msg, MessageType.WARNING);
+                            invokeLater(() -> new Notification("LSP","LSP Initialization Error", msg , NotificationType.WARNING).notify(project));
                             alreadyShownTimeout = true;
                         }
                     });
                     stop(false);
-                    LOG.warn("Capabilities are null for " + serverDefinition);
+                    LOG.info("Capabilities are null for " + serverDefinition);
                     return;
                 } catch (Exception e) {
                     LOG.warn(e);
@@ -432,9 +431,7 @@ public class LanguageServerWrapper {
                 });
             } catch (LSPException | IOException e) {
                 LOG.warn(e);
-                invokeLater(() ->
-                        notifier.showMessage(String.format("Can't start server due to %s", e.getMessage()),
-                                MessageType.WARNING));
+                invokeLater(() -> new Notification("LSP","LSP Connection Error", String.format("Can't start server due to %s", e.getMessage()) , NotificationType.WARNING).notify(project));
                 setStatus(STOPPED);
             }
         }

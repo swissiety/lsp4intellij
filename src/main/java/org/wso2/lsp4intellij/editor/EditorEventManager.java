@@ -678,7 +678,7 @@ public class EditorEventManager {
         });
     }
 
-    public int getTabSize() {
+    private int getTabSize() {
         return ApplicationUtils.computableReadAction(() ->{
         PsiFile psifile = PsiDocumentManager.getInstance(project).getPsiFile(editor.getDocument());
         CommonCodeStyleSettings commonCodeStyleSettings = new CommonCodeStyleSettings(psifile.getLanguage());
