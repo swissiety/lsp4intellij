@@ -71,6 +71,7 @@ import org.wso2.lsp4intellij.listeners.LSPCaretListenerImpl;
 import org.wso2.lsp4intellij.requests.HoverHandler;
 import org.wso2.lsp4intellij.requests.Timeouts;
 import org.wso2.lsp4intellij.requests.WorkspaceEditHandler;
+import org.wso2.lsp4intellij.utils.ApplicationUtils;
 import org.wso2.lsp4intellij.utils.DocumentUtils;
 import org.wso2.lsp4intellij.utils.FileUtils;
 import org.wso2.lsp4intellij.utils.GUIUtils;
@@ -678,6 +679,7 @@ public class EditorEventManager {
     }
 
     public int getTabSize() {
+        return ApplicationUtils.computableReadAction(() ->{
         PsiFile psifile = PsiDocumentManager.getInstance(project).getPsiFile(editor.getDocument());
         CommonCodeStyleSettings commonCodeStyleSettings = new CommonCodeStyleSettings(psifile.getLanguage());
         int tabSize;
@@ -688,6 +690,8 @@ public class EditorEventManager {
             tabSize = editor.getSettings().getTabSize(editor.getProject());
         }
         return tabSize;
+        });
+
     }
 
     public void rename(String renameTo) {
