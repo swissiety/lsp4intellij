@@ -231,7 +231,6 @@ public class DefaultRequestManager implements RequestManager {
     public CompletableFuture<List<? extends SymbolInformation>> symbol(WorkspaceSymbolParams params) {
         if (checkStatus()) {
             try {
-                // this can be null!
                 return serverCapabilities.getWorkspaceSymbolProvider() == Boolean.TRUE ? workspaceService.symbol(params) : null;
             } catch (Exception e) {
                 crashed(e);

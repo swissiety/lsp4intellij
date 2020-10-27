@@ -406,7 +406,7 @@ public final class IntellijLanguageClient implements Disposable {
             @NotNull final Module[] modules = ModuleManager.getInstance(project).getModules();
             List<WorkspaceFolder> folders = new ArrayList<>(modules.length);
             for (Module module : modules) {
-                folders.add(new WorkspaceFolder(ModuleUtil.getModuleDirPath(module), module.getName()));
+                folders.add(new WorkspaceFolder("file://"+ModuleUtil.getModuleDirPath(module), module.getName()));
             }
             return folders;
         }
