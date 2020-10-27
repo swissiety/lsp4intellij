@@ -82,7 +82,7 @@ public class LanguageServerWrapper {
     public LanguageServerDefinition serverDefinition;
     private final LSPExtensionManager extManager;
     private final Project project;
-    private final HashSet<Editor> toConnect = new HashSet<>();
+    private final HashSet<Editor> editorsWaitingToConnect = new HashSet<>();
     private final String projectRootPath;
     private final Map<String, EditorEventManager> connectedEditors = new ConcurrentHashMap<>();
     private final LSPServerStatusWidget statusWidget;
@@ -292,10 +292,10 @@ public class LanguageServerWrapper {
                         connectedEditors.put(uri, manager);
                         manager.documentOpened();
                         LOG.info("Created a manager for " + uri);
-                        synchronized (toConnect) {
-                            toConnect.remove(editor);
+                        synchronized (editorsWaitingToConnect) {
+                            editorsWaitingToConnect.remove(editor);
                         }
-                        for (Editor ed : toConnect) {
+                        for (Editor ed : editorsWaitingToConnect) {
                             connect(ed);
                         }
                     }
@@ -305,8 +305,8 @@ public class LanguageServerWrapper {
             });
 
         } else {
-            synchronized (toConnect) {
-                toConnect.add(editor);
+            synchronized (editorsWaitingToConnect) {
+                editorsWaitingToConnect.add(editor);
             }
         }
     }
@@ -360,6 +360,7 @@ public class LanguageServerWrapper {
             languageServer = null;
             setStatus(STOPPED);
         }
+        LOG.info("Wrapper for "+ serverDefinition.ext +" stopped.");
     }
 
     /**
