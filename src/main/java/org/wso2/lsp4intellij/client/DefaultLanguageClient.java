@@ -62,13 +62,15 @@ public class DefaultLanguageClient implements LanguageClient {
         initParams.setRootUri(FileUtils.pathToUri(projectRootPath));
         initParams.setWorkspaceFolders(ServiceManager.getService(IntellijLanguageClient.class).getWorkspaceFolderList(context.getProject()));
 
+        final List<SymbolKind> supportedSymbols = Arrays.asList(SymbolKind.Class, SymbolKind.Interface, SymbolKind.Method, SymbolKind.Field);
+
         //TODO update capabilities when implemented
         WorkspaceClientCapabilities workspaceClientCapabilities = new WorkspaceClientCapabilities();
         workspaceClientCapabilities.setApplyEdit(true);
         workspaceClientCapabilities.setDidChangeWatchedFiles(new DidChangeWatchedFilesCapabilities());
         workspaceClientCapabilities.setExecuteCommand(new ExecuteCommandCapabilities());
         workspaceClientCapabilities.setWorkspaceEdit(new WorkspaceEditCapabilities());
-        workspaceClientCapabilities.setSymbol(new SymbolCapabilities(new SymbolKindCapabilities(Arrays.asList(SymbolKind.Class, SymbolKind.Interface, SymbolKind.Method, SymbolKind.Field ))));
+        workspaceClientCapabilities.setSymbol(new SymbolCapabilities(new SymbolKindCapabilities(supportedSymbols)));
         workspaceClientCapabilities.setWorkspaceFolders(true);
         workspaceClientCapabilities.setConfiguration(false);
 
@@ -87,6 +89,8 @@ public class DefaultLanguageClient implements LanguageClient {
         textDocumentClientCapabilities.setSemanticHighlightingCapabilities(new SemanticHighlightingCapabilities(false));
         textDocumentClientCapabilities.setSignatureHelp(new SignatureHelpCapabilities());
         textDocumentClientCapabilities.setSynchronization(new SynchronizationCapabilities(true, true, true));
+        textDocumentClientCapabilities.setDocumentSymbol(new DocumentSymbolCapabilities(new SymbolKindCapabilities(supportedSymbols)));
+
         initParams.setCapabilities(
                 new ClientCapabilities(workspaceClientCapabilities, textDocumentClientCapabilities, null));
 

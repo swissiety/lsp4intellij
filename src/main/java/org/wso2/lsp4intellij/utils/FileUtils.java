@@ -137,6 +137,10 @@ public class FileUtils {
         }
     }
 
+    public static String uriFromVirtualFile(VirtualFile vf) {
+        return vf.toNioPath().toUri().toString();
+    }
+
     /**
      * Returns a file type given an editor
      *

@@ -52,6 +52,10 @@ public class ApplicationUtils {
         return ApplicationManager.getApplication().runReadAction(computable);
     }
 
+    static public void readAction(Runnable runnable) {
+        ApplicationManager.getApplication().runReadAction(runnable);
+    }
+
     static public void writeAction(Runnable runnable) {
         ApplicationManager.getApplication().runWriteAction(runnable);
     }
