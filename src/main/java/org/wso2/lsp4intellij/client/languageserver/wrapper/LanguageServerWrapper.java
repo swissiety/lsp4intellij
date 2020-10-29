@@ -294,9 +294,9 @@ public class LanguageServerWrapper {
                         LOG.info("Created a manager for " + uri);
                         synchronized (editorsWaitingToConnect) {
                             editorsWaitingToConnect.remove(editor);
-                        }
-                        for (Editor ed : editorsWaitingToConnect) {
-                            connect(ed);
+                            for (Editor ed : editorsWaitingToConnect) {
+                                connect(ed);
+                            }
                         }
                     }
                 } catch (Exception e) {

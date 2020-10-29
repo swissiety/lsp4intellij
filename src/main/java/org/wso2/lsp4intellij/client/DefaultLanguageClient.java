@@ -33,10 +33,7 @@ import org.wso2.lsp4intellij.utils.ApplicationUtils;
 import org.wso2.lsp4intellij.utils.FileUtils;
 
 import javax.swing.*;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -71,7 +68,7 @@ public class DefaultLanguageClient implements LanguageClient {
         workspaceClientCapabilities.setDidChangeWatchedFiles(new DidChangeWatchedFilesCapabilities());
         workspaceClientCapabilities.setExecuteCommand(new ExecuteCommandCapabilities());
         workspaceClientCapabilities.setWorkspaceEdit(new WorkspaceEditCapabilities());
-        workspaceClientCapabilities.setSymbol(new SymbolCapabilities());
+        workspaceClientCapabilities.setSymbol(new SymbolCapabilities(new SymbolKindCapabilities(Arrays.asList(SymbolKind.Class, SymbolKind.Interface, SymbolKind.Method, SymbolKind.Field ))));
         workspaceClientCapabilities.setWorkspaceFolders(true);
         workspaceClientCapabilities.setConfiguration(false);
 

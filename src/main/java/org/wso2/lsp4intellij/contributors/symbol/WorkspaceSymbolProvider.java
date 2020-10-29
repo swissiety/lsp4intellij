@@ -98,8 +98,10 @@ public class WorkspaceSymbolProvider {
       List<? extends SymbolInformation> symbolInformations = request
           .get(Timeout.getTimeout(Timeouts.WORKSPACESYMBOLS), TimeUnit.MILLISECONDS);
       wrapper.notifySuccess(Timeouts.WORKSPACESYMBOLS);
-      return symbolInformations.stream()
-          .map(si -> new LSPSymbolResult(si, wrapper.getServerDefinition()));
+      if( symbolInformations != null){
+        return symbolInformations.stream()
+                .map(si -> new LSPSymbolResult(si, wrapper.getServerDefinition()));
+      }
     } catch (TimeoutException e) {
       LOG.warn(e);
       wrapper.notifyFailure(Timeouts.SYMBOLS);
