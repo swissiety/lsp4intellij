@@ -222,7 +222,7 @@ public class LanguageServerWrapper {
         if (connectedEditors.containsKey(uri)) {
             return;
         }
-        start();
+
         if (initializeFuture != null) {
             final ServerCapabilities capabilities;
             if (initializeResult == null) {
@@ -572,14 +572,11 @@ public class LanguageServerWrapper {
         FileEditor[] fileEditors = FileEditorManager.getInstance(project)
                 .getAllEditors(Objects.requireNonNull(FileUtils.URIToVFS(uri)));
 
-        List<Editor> editors = new ArrayList<>();
         for (FileEditor ed : fileEditors) {
             if (ed instanceof TextEditor) {
-                editors.add(((TextEditor) ed).getEditor());
+                connect(((TextEditor) ed).getEditor());
+                break;
             }
-        }
-        if (!editors.isEmpty()) {
-            connect(editors.get(0));
         }
     }
 
