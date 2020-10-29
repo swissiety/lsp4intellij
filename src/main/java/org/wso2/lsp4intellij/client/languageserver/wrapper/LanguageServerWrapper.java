@@ -223,40 +223,18 @@ public class LanguageServerWrapper {
             return;
         }
 
-        if (initializeFuture != null) {
-            final ServerCapabilities capabilities;
-            if (initializeResult == null) {
-                try{
-                    initializeFuture.get(( initializeFuture.isDone() ? 0 : getTimeout(INIT)), TimeUnit.MILLISECONDS);
-                    notifySuccess(INIT);
-                } catch (TimeoutException e) {
-                    notifyFailure(INIT);
-                    String msg = String.format("%s \n is not initialized after %d seconds",
-                            serverDefinition.toString(), getTimeout(INIT) / 1000);
-                    LOG.info(msg, e);
-                    invokeLater(() -> {
-                        if (!alreadyShownTimeout) {
-                            invokeLater(() -> new Notification("LSP","LSP Initialization Error", msg , NotificationType.WARNING).notify(project));
-                            alreadyShownTimeout = true;
-                        }
-                    });
-                    stop(false);
-                    LOG.info("Capabilities are null for " + serverDefinition);
-                    return;
-                } catch (Exception e) {
-                    LOG.warn(e);
-                    stop(false);
-                    LOG.warn("Capabilities are null for " + serverDefinition);
-                    return;
-                }
+        if (initializeFuture == null) {
+            start();
+            synchronized (editorsWaitingToConnect) {
+                editorsWaitingToConnect.add(editor);
             }
-            capabilities = getServerCapabilities();
-
+        } else {
             // runnables are getting chained/queued and executed even when initializeFuture is already done
             initializeFuture.thenRun(() -> {
                 if (connectedEditors.containsKey(uri)) {
                     return;
                 }
+                final ServerCapabilities capabilities = getServerCapabilities();
                 try {
                     Either<TextDocumentSyncKind, TextDocumentSyncOptions> syncOptions = capabilities.getTextDocumentSync();
                     if (syncOptions != null) {
@@ -294,9 +272,6 @@ public class LanguageServerWrapper {
                         LOG.info("Created a manager for " + uri);
                         synchronized (editorsWaitingToConnect) {
                             editorsWaitingToConnect.remove(editor);
-                            for (Editor ed : editorsWaitingToConnect) {
-                                connect(ed);
-                            }
                         }
                     }
                 } catch (Exception e) {
@@ -304,21 +279,20 @@ public class LanguageServerWrapper {
                 }
             });
 
-        } else {
-            synchronized (editorsWaitingToConnect) {
-                editorsWaitingToConnect.add(editor);
-            }
         }
     }
 
     /* cleanup if underlying connection e.g. the socket failed */
     public void connectionFailed() {
         if (initializeFuture != null) {
-            initializeFuture.cancel(true);
+            if(!initializeFuture.isDone()) {
+                initializeFuture.cancel(true);
+            }
             initializeFuture = null;
         }
         initializeResult = null;
         languageServer = null;
+        connectedEditors.clear();
         setStatus(STOPPED);
     }
 
@@ -330,7 +304,9 @@ public class LanguageServerWrapper {
     public void stop(boolean exit) {
         try {
             if (initializeFuture != null) {
-                initializeFuture.cancel(true);
+                if(!initializeFuture.isDone()) {
+                    initializeFuture.cancel(true);
+                }
                 initializeFuture = null;
             }
             initializeResult = null;
@@ -413,27 +389,53 @@ public class LanguageServerWrapper {
                 messageHandler.setLanguageServerWrapper(this);
 
                 InitializeParams initParams = client.getInitParams(projectRootPath);
-                initializeFuture = languageServer.initialize(initParams).thenApply(res -> {
-                    initializeResult = res;
-                    LOG.info("Got initializeResult for " + serverDefinition + " ; " + projectRootPath);
-                    if (extManager != null) {
-                        requestManager = extManager.getExtendedRequestManagerFor(this, languageServer, client, res.getCapabilities());
-                        if (requestManager == null) {
-                            requestManager = new DefaultRequestManager(this, languageServer, client, res.getCapabilities());
+                initializeFuture = languageServer.initialize(initParams);
+                initializeFuture.thenRun(() ->{
+                    synchronized (editorsWaitingToConnect) {
+                        for (Editor ed : editorsWaitingToConnect) {
+                            connect(ed);
                         }
-                    } else {
-                        requestManager = new DefaultRequestManager(this, languageServer, client, res.getCapabilities());
                     }
-                    setStatus(STARTED);
-                    // send the initialized message since some language servers depends on this message
-                    requestManager.initialized(new InitializedParams());
-                    setStatus(INITIALIZED);
-                    return res;
                 });
+
+                initializeResult = initializeFuture.get(( initializeFuture.isDone() ? 0 : getTimeout(INIT)), TimeUnit.MILLISECONDS);
+                notifySuccess(INIT);
+
+                LOG.info("Got initializeResult for " + serverDefinition + " ; " + projectRootPath);
+                if (extManager != null) {
+                    requestManager = extManager.getExtendedRequestManagerFor(this, languageServer, client, initializeResult.getCapabilities());
+                    if (requestManager == null) {
+                        requestManager = new DefaultRequestManager(this, languageServer, client, initializeResult.getCapabilities());
+                    }
+                } else {
+                    requestManager = new DefaultRequestManager(this, languageServer, client, initializeResult.getCapabilities());
+                }
+                setStatus(STARTED);
+                // send the initialized message since some language servers depends on this message
+                requestManager.initialized(new InitializedParams());
+                setStatus(INITIALIZED);
+
             } catch (LSPException | IOException e) {
                 LOG.warn(e);
                 invokeLater(() -> new Notification("LSP","LSP Connection Error", String.format("Can't start server due to %s", e.getMessage()) , NotificationType.WARNING).notify(project));
                 setStatus(STOPPED);
+            }catch (TimeoutException e) {
+                notifyFailure(INIT);
+                String msg = String.format("%s \n is not initialized after %d seconds",
+                        serverDefinition.toString(), getTimeout(INIT) / 1000);
+                LOG.info(msg, e);
+                invokeLater(() -> {
+                    if (!alreadyShownTimeout) {
+                        invokeLater(() -> new Notification("LSP","LSP Initialization Error", msg , NotificationType.WARNING).notify(project));
+                        alreadyShownTimeout = true;
+                    }
+                });
+                stop(false);
+                LOG.info("Capabilities are null for " + serverDefinition);
+            } catch (Exception e) {
+                LOG.warn(e);
+                stop(false);
+                LOG.warn("Capabilities are null for " + serverDefinition);
             }
         }
     }
@@ -523,6 +525,7 @@ public class LanguageServerWrapper {
         // Need to copy by value since connected editors gets cleared during 'stop()' invocation.
         final Set<String> connected = new HashSet<>(connectedEditors.keySet());
         stop(true);
+        start();
         for (String uri : connected) {
             connect(uri);
         }
