@@ -110,7 +110,7 @@ public class DocumentUtils {
     public static int LSPPosToOffset(Editor editor, Position pos) {
         return computableReadAction(() -> {
             try {
-                if (editor.isDisposed()) {
+                if (editor == null || editor.isDisposed()) {
                     return -1;
                 }
 
