@@ -1,9 +1,14 @@
 package org.wso2.lsp4intellij.contributors.psi;
 
+import com.intellij.icons.AllIcons;
+import com.intellij.navigation.ItemPresentation;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiFile;
 import org.eclipse.lsp4j.SymbolKind;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import javax.swing.*;
 
 public class LSPPsiSymbol extends LSPPsiElement{
   private final SymbolKind kind;
@@ -18,5 +23,33 @@ public class LSPPsiSymbol extends LSPPsiElement{
   public LSPPsiSymbol(SymbolKind kind, String name, @NotNull Project project, int start, int end, PsiFile file) {
     super(name, project, start, end, file);
     this.kind = kind;
+  }
+
+  @Override
+  public ItemPresentation getPresentation() {
+    return new ItemPresentation() {
+      @Override
+      public @Nullable String getPresentableText() {
+        return getName();
+      }
+
+      @Override
+      public @Nullable String getLocationString() {
+        return "";
+      }
+
+      @Override
+      public @Nullable Icon getIcon(boolean unused) {
+          switch (kind){
+            case Class:
+              return AllIcons.Nodes.Class;
+            case Field:
+              return AllIcons.Nodes.Field;
+            case Method:
+              return AllIcons.Nodes.Method;
+          }
+          return AllIcons.Nodes.AnonymousClass;
+      }
+    };
   }
 }

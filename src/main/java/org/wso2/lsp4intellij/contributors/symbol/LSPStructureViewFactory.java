@@ -2,6 +2,7 @@ package org.wso2.lsp4intellij.contributors.symbol;
 
 import com.intellij.ide.projectView.PresentationData;
 import com.intellij.ide.structureView.*;
+import com.intellij.ide.util.treeView.smartTree.Grouper;
 import com.intellij.ide.util.treeView.smartTree.SortableTreeElement;
 import com.intellij.ide.util.treeView.smartTree.Sorter;
 import com.intellij.ide.util.treeView.smartTree.TreeElement;
@@ -24,11 +25,13 @@ import org.wso2.lsp4intellij.contributors.psi.LSPPsiSymbol;
 import org.wso2.lsp4intellij.requests.Timeout;
 import org.wso2.lsp4intellij.requests.Timeouts;
 import org.wso2.lsp4intellij.utils.ApplicationUtils;
-import org.wso2.lsp4intellij.utils.DocumentUtils;
 import org.wso2.lsp4intellij.utils.FileUtils;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -36,54 +39,62 @@ import java.util.concurrent.TimeoutException;
 
 public final class LSPStructureViewFactory implements PsiStructureViewFactory {
 
-  Map<PsiFile, List<TreeElement>> treeElements = new HashMap<>();
+  List<TreeElement> treeElements = new ArrayList<>();
 
   @Nullable
-    @Override
-    public StructureViewBuilder getStructureViewBuilder(@NotNull final PsiFile psiFile) {
-      return new TreeBasedStructureViewBuilder() {
-        @NotNull
-        @Override
-        public StructureViewModel createStructureViewModel(@Nullable Editor editor) {
+  @Override
+  public StructureViewBuilder getStructureViewBuilder(@NotNull final PsiFile psiFile) {
+    return new TreeBasedStructureViewBuilder() {
+      @NotNull
+      @Override
+      public StructureViewModel createStructureViewModel(@Nullable Editor editor) {
 
-          final LSPStructureViewModel lspStructureViewModel = new LSPStructureViewModel(psiFile);
+        final LSPStructureViewModel lspStructureViewModel = new LSPStructureViewModel(psiFile);
+        treeElements.clear();
 
-          ApplicationUtils.invokeLater(() -> {
-            // load data from server
-            final Set<LanguageServerWrapper> wrappers = ServiceManager.getService(IntellijLanguageClient.class).getAllServerWrappersFor(FileUtils.projectToUri(psiFile.getProject()));
-            final Optional<LanguageServerWrapper> wrapperOpt = wrappers.stream().findFirst();
-            if(wrapperOpt.isPresent()) {
-              final LanguageServerWrapper wrapper = wrapperOpt.get();
-              final CompletableFuture<List<Either<SymbolInformation, DocumentSymbol>>> listCompletableFuture = wrapper.getRequestManager().documentSymbol(new DocumentSymbolParams(new TextDocumentIdentifier(FileUtils.uriFromVirtualFile(psiFile.getVirtualFile()))));
+        ApplicationUtils.invokeLater(() -> {
+          // load data from server
+          final Set<LanguageServerWrapper> wrappers = ServiceManager.getService(IntellijLanguageClient.class).getAllServerWrappersFor(FileUtils.projectToUri(psiFile.getProject()));
+          final Optional<LanguageServerWrapper> wrapperOpt = wrappers.stream().findFirst();
+          if(wrapperOpt.isPresent()) {
+            final LanguageServerWrapper wrapper = wrapperOpt.get();
+            final CompletableFuture<List<Either<SymbolInformation, DocumentSymbol>>> listCompletableFuture = wrapper.getRequestManager().documentSymbol(new DocumentSymbolParams(new TextDocumentIdentifier(FileUtils.uriFromVirtualFile(psiFile.getVirtualFile()))));
 
-              List<Either<SymbolInformation, DocumentSymbol>> eithers;
-              try {
-                eithers = listCompletableFuture.get(Timeout.getTimeout(Timeouts.SYMBOLS), TimeUnit.MILLISECONDS);
-                wrapper.notifySuccess(Timeouts.SYMBOLS);
-              }catch (InterruptedException | ExecutionException | TimeoutException e) {
-                wrapper.notifyFailure(Timeouts.SYMBOLS);
-                e.printStackTrace();
-                return;
-              }
-
-              final List<TreeElement> list = LSPStructureViewFactory.this.treeElements.computeIfAbsent(psiFile, k -> new ArrayList<>());
-              for (Either<SymbolInformation, DocumentSymbol> either : eithers) {
-                if (either.isLeft()) {
-                  final SymbolInformation symbolInfo = either.getLeft();
-                  list.add(new LSPStructureViewElement(new LSPPsiSymbol(symbolInfo.getKind(), symbolInfo.getName(), psiFile.getProject(), DocumentUtils.LSPPosToOffset(editor, symbolInfo.getLocation().getRange().getStart()),  DocumentUtils.LSPPosToOffset(editor, symbolInfo.getLocation().getRange().getEnd()), psiFile.getContainingFile())));
-                }else if (either.isRight()) {
-                  final DocumentSymbol docSymbol = either.getRight();
-                  list.add(new LSPStructureViewElement(new LSPPsiSymbol(docSymbol.getKind(), docSymbol.getName(), psiFile.getProject(), DocumentUtils.LSPPosToOffset(editor, docSymbol.getRange().getStart()),  DocumentUtils.LSPPosToOffset(editor, docSymbol.getRange().getEnd()), psiFile.getContainingFile())));
-                }
-              }
-              lspStructureViewModel.fireModelUpdate();
+            List<Either<SymbolInformation, DocumentSymbol>> eithers;
+            try {
+              eithers = listCompletableFuture.get(Timeout.getTimeout(Timeouts.SYMBOLS), TimeUnit.MILLISECONDS);
+              wrapper.notifySuccess(Timeouts.SYMBOLS);
+            }catch (InterruptedException | ExecutionException | TimeoutException e) {
+              wrapper.notifyFailure(Timeouts.SYMBOLS);
+              e.printStackTrace();
+              return;
             }
-          });
 
-          return lspStructureViewModel;
-        }
-      };
-    }
+            if(eithers == null){
+              return;
+            }
+
+            for (Either<SymbolInformation, DocumentSymbol> either : eithers) {
+              // TODO: update positions
+              if (either.isLeft()) {
+                final SymbolInformation symbolInfo = either.getLeft();
+                // DocumentUtils.LSPPosToOffset(editor, symbolInfo.getLocation().getRange().getStart());
+                treeElements.add(new LSPStructureViewFactory.LSPStructureViewElement(new LSPPsiSymbol(symbolInfo.getKind(), symbolInfo.getName(), psiFile.getProject(), 1, 3, psiFile.getContainingFile())));
+              }else if (either.isRight()) {
+                final DocumentSymbol docSymbol = either.getRight();
+                // DocumentUtils.LSPPosToOffset(editor, docSymbol.getLocation().getRange().getStart());
+                treeElements.add(new LSPStructureViewFactory.LSPStructureViewElement(new LSPPsiSymbol(docSymbol.getKind(), docSymbol.getName(), psiFile.getProject(), 1, 3, psiFile.getContainingFile())));
+              }
+            }
+
+            lspStructureViewModel.fireModelUpdate();
+          }
+        });
+
+        return lspStructureViewModel;
+      }
+    };
+  }
 
   class LSPStructureViewElement implements StructureViewTreeElement, SortableTreeElement {
 
@@ -132,7 +143,7 @@ public final class LSPStructureViewFactory implements PsiStructureViewFactory {
     public TreeElement[] getChildren() {
       if( navigatablePsiElement instanceof PsiPlainTextFile)
       {
-        return treeElements.getOrDefault(navigatablePsiElement, Collections.emptyList()).toArray(new TreeElement[0]);
+        return treeElements.toArray(new TreeElement[0]);
       }
       return EMPTY_ARRAY;
     }
@@ -143,7 +154,13 @@ public final class LSPStructureViewFactory implements PsiStructureViewFactory {
           StructureViewModel.ElementInfoProvider {
 
     public LSPStructureViewModel(PsiFile psiFile) {
-      super(psiFile, new LSPStructureViewElement(psiFile));
+      super(psiFile, new LSPStructureViewFactory.LSPStructureViewElement(psiFile));
+    }
+
+    @Override
+    public @NotNull Grouper[] getGroupers() {
+      // TODO: group by kind
+      return super.getGroupers();
     }
 
     @NotNull
@@ -158,7 +175,7 @@ public final class LSPStructureViewFactory implements PsiStructureViewFactory {
 
     @Override
     public boolean isAlwaysLeaf(StructureViewTreeElement element) {
-      return !(element instanceof PsiPlainTextFile);
+      return false; //element instanceof PlainTextLanguage;
     }
 
   }
