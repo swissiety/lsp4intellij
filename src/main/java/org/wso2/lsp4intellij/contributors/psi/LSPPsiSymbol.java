@@ -43,9 +43,13 @@ public class LSPPsiSymbol extends LSPPsiElement{
           switch (kind){
             case Class:
               return AllIcons.Nodes.Class;
+            case Interface:
+              return AllIcons.Nodes.Interface;
             case Field:
+            case Constant:
               return AllIcons.Nodes.Field;
             case Method:
+            case Constructor:
               return AllIcons.Nodes.Method;
           }
           return AllIcons.Nodes.AnonymousClass;
