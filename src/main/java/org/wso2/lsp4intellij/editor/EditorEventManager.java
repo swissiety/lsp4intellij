@@ -50,7 +50,6 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
-import com.intellij.psi.codeStyle.CommonCodeStyleSettings;
 import com.intellij.ui.Hint;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.lsp4j.*;
@@ -58,6 +57,7 @@ import org.eclipse.lsp4j.jsonrpc.JsonRpcException;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.jsonrpc.messages.Tuple;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.wso2.lsp4intellij.actions.LSPReferencesAction;
 import org.wso2.lsp4intellij.client.languageserver.ServerOptions;
 import org.wso2.lsp4intellij.client.languageserver.requestmanager.RequestManager;
@@ -71,7 +71,6 @@ import org.wso2.lsp4intellij.listeners.LSPCaretListenerImpl;
 import org.wso2.lsp4intellij.requests.HoverHandler;
 import org.wso2.lsp4intellij.requests.Timeouts;
 import org.wso2.lsp4intellij.requests.WorkspaceEditHandler;
-import org.wso2.lsp4intellij.utils.ApplicationUtils;
 import org.wso2.lsp4intellij.utils.DocumentUtils;
 import org.wso2.lsp4intellij.utils.FileUtils;
 import org.wso2.lsp4intellij.utils.GUIUtils;
@@ -109,6 +108,7 @@ import static org.wso2.lsp4intellij.utils.GUIUtils.createAndShowEditorHint;
  */
 public class EditorEventManager {
 
+
     protected Logger LOG = Logger.getInstance(EditorEventManager.class);
 
     public Editor editor;
@@ -141,8 +141,8 @@ public class EditorEventManager {
     private volatile boolean codeActionSyncRequired = false;
 
     public static final String SNIPPET_PLACEHOLDER_REGEX = "(\\$\\{\\d+:?([^{^}]*)}|\\$\\d+)";
-
     //Todo - Revisit arguments order and add remaining listeners
+
     public EditorEventManager(Editor editor, DocumentListener documentListener, EditorMouseListener mouseListener,
                               EditorMouseMotionListener mouseMotionListener, LSPCaretListenerImpl caretListener,
                               RequestManager requestManager, ServerOptions serverOptions, LanguageServerWrapper wrapper) {
@@ -624,7 +624,7 @@ public class EditorEventManager {
             params.setTextDocument(identifier);
 
             final boolean insertSpaces = false;     // TODO: adapt to intellij config
-            FormattingOptions options = new FormattingOptions(getTabSize(), insertSpaces);
+            FormattingOptions options = new FormattingOptions(DocumentUtils.getTabSize(editor), insertSpaces);
 
             params.setOptions(options);
 
@@ -658,7 +658,7 @@ public class EditorEventManager {
             params.setRange(new Range(startingPos, endPos));
             // Todo - Make Formatting Options configurable
             boolean insertSpaces = false;
-            FormattingOptions options = new FormattingOptions(getTabSize(), insertSpaces);
+            FormattingOptions options = new FormattingOptions(DocumentUtils.getTabSize(editor), insertSpaces);
             params.setOptions(options);
 
             CompletableFuture<List<? extends TextEdit>> request = requestManager.rangeFormatting(params);
@@ -676,22 +676,6 @@ public class EditorEventManager {
                 });
             });
         });
-    }
-
-    private int getTabSize() {
-        return ApplicationUtils.computableReadAction(() ->{
-        PsiFile psifile = PsiDocumentManager.getInstance(project).getPsiFile(editor.getDocument());
-        CommonCodeStyleSettings commonCodeStyleSettings = new CommonCodeStyleSettings(psifile.getLanguage());
-        int tabSize;
-        final CommonCodeStyleSettings.IndentOptions indentOptions = commonCodeStyleSettings.getIndentOptions();
-        if(indentOptions != null) {
-            tabSize = indentOptions.TAB_SIZE;
-        }else{
-            tabSize = editor.getSettings().getTabSize(editor.getProject());
-        }
-        return tabSize;
-        });
-
     }
 
     public void rename(String renameTo) {

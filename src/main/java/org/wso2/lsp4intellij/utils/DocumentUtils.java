@@ -21,6 +21,9 @@ import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.LogicalPosition;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.util.text.StringUtil;
+import com.intellij.psi.PsiDocumentManager;
+import com.intellij.psi.PsiFile;
+import com.intellij.psi.codeStyle.CommonCodeStyleSettings;
 import com.intellij.util.DocumentUtil;
 import org.eclipse.lsp4j.Position;
 
@@ -37,6 +40,22 @@ public class DocumentUtils {
     private static Logger LOG = Logger.getInstance(DocumentUtils.class);
     public static final String WIN_SEPARATOR = "\r\n";
     public static final String LINUX_SEPARATOR = "\n";
+
+    // maybe its too sophisticated.. otherwise just use: editor.getSettings().getTabSize(editor.getProject())
+    public static int getTabSize(Editor editor) {
+        return ApplicationUtils.computableReadAction(() ->{
+            PsiFile psifile = PsiDocumentManager.getInstance(editor.getProject()).getPsiFile(editor.getDocument());
+            CommonCodeStyleSettings commonCodeStyleSettings = new CommonCodeStyleSettings(psifile.getLanguage());
+            int tabSize;
+            final CommonCodeStyleSettings.IndentOptions indentOptions = commonCodeStyleSettings.getIndentOptions();
+            if(indentOptions != null) {
+                tabSize = indentOptions.TAB_SIZE;
+            }else{
+                tabSize = editor.getSettings().getTabSize(editor.getProject());
+            }
+            return tabSize;
+        });
+    }
 
     /**
      * Gets the line at the given offset given an editor and bolds the text between the given offsets
@@ -113,6 +132,14 @@ public class DocumentUtils {
                 if (editor == null || editor.isDisposed()) {
                     return -1;
                 }
+                // lsp and intellij start lines/columns zero-based
+
+                // FIXME: [ms] "The offsets are based on a UTF-16 string representation.
+                //  So a string of the form a𐐀b the character offset of the character
+                //  a is 0,
+                //  the character offset of 𐐀 is 1
+                //  and the character offset of b is 3 since 𐐀 is represented using two code units in UTF-16."
+                // see https://microsoft.github.io/language-server-protocol/specifications/specification-current/#textDocuments
 
                 Document doc = editor.getDocument();
                 int line = Math.max(0, Math.min(pos.getLine(), doc.getLineCount()));
@@ -121,7 +148,7 @@ public class DocumentUtils {
                         lineText.substring(0, min(lineText.length(), pos.getCharacter())) :
                         "";
                 int tabs = StringUtil.countChars(lineTextForPosition, '\t');
-                int tabSize = editor.getSettings().getTabSize(editor.getProject());
+                int tabSize = getTabSize(editor);
                 int column = tabs * tabSize + lineTextForPosition.length() - tabs;
                 int offset = editor.logicalPositionToOffset(new LogicalPosition(line, column));
                 if (pos.getCharacter() >= lineText.length()) {
