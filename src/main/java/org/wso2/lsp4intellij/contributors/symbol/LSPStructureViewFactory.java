@@ -10,6 +10,8 @@ import com.intellij.lang.PsiStructureViewFactory;
 import com.intellij.navigation.ItemPresentation;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.editor.event.DocumentEvent;
+import com.intellij.openapi.editor.event.DocumentListener;
 import com.intellij.psi.NavigatablePsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiPlainTextFile;
@@ -42,6 +44,45 @@ public final class LSPStructureViewFactory implements PsiStructureViewFactory {
 
   List<TreeElement> treeElements = new ArrayList<>();
 
+  void loadSymbols(LSPStructureViewModel lspStructureViewModel, Editor editor, @NotNull PsiFile psiFile){
+    ApplicationUtils.invokeLater(() -> {
+      // load data from server
+      final Set<LanguageServerWrapper> wrappers = ServiceManager.getService(IntellijLanguageClient.class).getAllServerWrappersFor(FileUtils.projectToUri(psiFile.getProject()));
+      final Optional<LanguageServerWrapper> wrapperOpt = wrappers.stream().findFirst();
+      if(wrapperOpt.isPresent()) {
+        final LanguageServerWrapper wrapper = wrapperOpt.get();
+        final CompletableFuture<List<Either<SymbolInformation, DocumentSymbol>>> listCompletableFuture = wrapper.getRequestManager().documentSymbol(new DocumentSymbolParams(new TextDocumentIdentifier(FileUtils.uriFromVirtualFile(psiFile.getVirtualFile()))));
+
+        List<Either<SymbolInformation, DocumentSymbol>> eithers;
+        try {
+          eithers = listCompletableFuture.get(Timeout.getTimeout(Timeouts.SYMBOLS), TimeUnit.MILLISECONDS);
+          wrapper.notifySuccess(Timeouts.SYMBOLS);
+          treeElements.clear();
+
+          if(eithers != null) {
+            for (Either<SymbolInformation, DocumentSymbol> either : eithers) {
+              if (either.isLeft()) {
+                final SymbolInformation symbolInfo = either.getLeft();
+                treeElements.add(new LSPStructureViewFactory.LSPStructureViewElement(new LSPPsiSymbol(symbolInfo.getKind(), symbolInfo.getName(), psiFile.getProject(), DocumentUtils.LSPPosToOffset(editor, symbolInfo.getLocation().getRange().getStart()), DocumentUtils.LSPPosToOffset(editor, symbolInfo.getLocation().getRange().getEnd()), psiFile.getContainingFile())));
+              } else if (either.isRight()) {
+                final DocumentSymbol docSymbol = either.getRight();
+                treeElements.add(new LSPStructureViewFactory.LSPStructureViewElement(
+                        new LSPPsiSymbol(docSymbol.getKind(), docSymbol.getName(), psiFile.getProject(), DocumentUtils.LSPPosToOffset(editor, docSymbol.getRange().getStart()), DocumentUtils.LSPPosToOffset(editor, docSymbol.getRange().getEnd()), psiFile.getContainingFile())));
+              }
+            }
+          }
+
+          lspStructureViewModel.fireModelUpdate();
+
+        }catch (InterruptedException | ExecutionException | TimeoutException e) {
+          wrapper.notifyFailure(Timeouts.SYMBOLS);
+          e.printStackTrace();
+        }
+      }
+    });
+  }
+
+
   @Nullable
   @Override
   public StructureViewBuilder getStructureViewBuilder(@NotNull final PsiFile psiFile) {
@@ -51,41 +92,13 @@ public final class LSPStructureViewFactory implements PsiStructureViewFactory {
       public StructureViewModel createStructureViewModel(@Nullable Editor editor) {
 
         final LSPStructureViewModel lspStructureViewModel = new LSPStructureViewModel(psiFile);
-        treeElements.clear();
+        loadSymbols(lspStructureViewModel, editor, psiFile);
 
-        ApplicationUtils.invokeLater(() -> {
-          // load data from server
-          final Set<LanguageServerWrapper> wrappers = ServiceManager.getService(IntellijLanguageClient.class).getAllServerWrappersFor(FileUtils.projectToUri(psiFile.getProject()));
-          final Optional<LanguageServerWrapper> wrapperOpt = wrappers.stream().findFirst();
-          if(wrapperOpt.isPresent()) {
-            final LanguageServerWrapper wrapper = wrapperOpt.get();
-            final CompletableFuture<List<Either<SymbolInformation, DocumentSymbol>>> listCompletableFuture = wrapper.getRequestManager().documentSymbol(new DocumentSymbolParams(new TextDocumentIdentifier(FileUtils.uriFromVirtualFile(psiFile.getVirtualFile()))));
-
-            List<Either<SymbolInformation, DocumentSymbol>> eithers;
-            try {
-              eithers = listCompletableFuture.get(Timeout.getTimeout(Timeouts.SYMBOLS), TimeUnit.MILLISECONDS);
-              wrapper.notifySuccess(Timeouts.SYMBOLS);
-
-              if(eithers != null) {
-                for (Either<SymbolInformation, DocumentSymbol> either : eithers) {
-                  if (either.isLeft()) {
-                    final SymbolInformation symbolInfo = either.getLeft();
-                    treeElements.add(new LSPStructureViewFactory.LSPStructureViewElement(new LSPPsiSymbol(symbolInfo.getKind(), symbolInfo.getName(), psiFile.getProject(), DocumentUtils.LSPPosToOffset(editor, symbolInfo.getLocation().getRange().getStart()), DocumentUtils.LSPPosToOffset(editor, symbolInfo.getLocation().getRange().getEnd()), psiFile.getContainingFile())));
-                  } else if (either.isRight()) {
-                    final DocumentSymbol docSymbol = either.getRight();
-                    treeElements.add(new LSPStructureViewFactory.LSPStructureViewElement(
-                            new LSPPsiSymbol(docSymbol.getKind(), docSymbol.getName(), psiFile.getProject(), DocumentUtils.LSPPosToOffset(editor, docSymbol.getRange().getStart()), DocumentUtils.LSPPosToOffset(editor, docSymbol.getRange().getEnd()), psiFile.getContainingFile())));
-                  }
-                }
-              }
-
-              lspStructureViewModel.fireModelUpdate();
-
-            }catch (InterruptedException | ExecutionException | TimeoutException e) {
-              wrapper.notifyFailure(Timeouts.SYMBOLS);
-              e.printStackTrace();
-            }
-          }
+        editor.getDocument().addDocumentListener(new DocumentListener() {
+          @Override
+          public void documentChanged(@NotNull DocumentEvent event){
+            loadSymbols(lspStructureViewModel, editor, psiFile);
+        }
         });
 
         return lspStructureViewModel;
