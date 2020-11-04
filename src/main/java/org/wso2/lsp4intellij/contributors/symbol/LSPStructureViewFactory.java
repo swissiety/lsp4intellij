@@ -1,11 +1,10 @@
 package org.wso2.lsp4intellij.contributors.symbol;
 
+import com.intellij.icons.AllIcons;
 import com.intellij.ide.projectView.PresentationData;
 import com.intellij.ide.structureView.*;
-import com.intellij.ide.util.treeView.smartTree.Grouper;
-import com.intellij.ide.util.treeView.smartTree.SortableTreeElement;
-import com.intellij.ide.util.treeView.smartTree.Sorter;
-import com.intellij.ide.util.treeView.smartTree.TreeElement;
+import com.intellij.ide.util.treeView.AbstractTreeNode;
+import com.intellij.ide.util.treeView.smartTree.*;
 import com.intellij.lang.PsiStructureViewFactory;
 import com.intellij.navigation.ItemPresentation;
 import com.intellij.openapi.components.ServiceManager;
@@ -15,27 +14,25 @@ import com.intellij.openapi.editor.event.DocumentListener;
 import com.intellij.psi.NavigatablePsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiPlainTextFile;
-import org.eclipse.lsp4j.DocumentSymbol;
-import org.eclipse.lsp4j.DocumentSymbolParams;
-import org.eclipse.lsp4j.SymbolInformation;
-import org.eclipse.lsp4j.TextDocumentIdentifier;
+import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
+import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.wso2.lsp4intellij.IntellijLanguageClient;
 import org.wso2.lsp4intellij.client.languageserver.wrapper.LanguageServerWrapper;
 import org.wso2.lsp4intellij.contributors.psi.LSPPsiSymbol;
 import org.wso2.lsp4intellij.requests.Timeout;
 import org.wso2.lsp4intellij.requests.Timeouts;
-import org.wso2.lsp4intellij.utils.ApplicationUtils;
 import org.wso2.lsp4intellij.utils.DocumentUtils;
 import org.wso2.lsp4intellij.utils.FileUtils;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.*;
+import javax.swing.*;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static java.lang.Thread.sleep;
 
@@ -44,7 +41,6 @@ public final class LSPStructureViewFactory implements PsiStructureViewFactory {
   List<TreeElement> treeElements = new ArrayList<>();
 
   void loadSymbols(LSPStructureViewModel lspStructureViewModel, Editor editor, @NotNull PsiFile psiFile){
-    ApplicationUtils.invokeLater(() -> {
       // load data from server
       final Set<LanguageServerWrapper> wrappers = ServiceManager.getService(IntellijLanguageClient.class).getAllServerWrappersFor(FileUtils.projectToUri(psiFile.getProject()));
       final Optional<LanguageServerWrapper> wrapperOpt = wrappers.stream().findFirst();
@@ -62,11 +58,11 @@ public final class LSPStructureViewFactory implements PsiStructureViewFactory {
             for (Either<SymbolInformation, DocumentSymbol> either : eithers) {
               if (either.isLeft()) {
                 final SymbolInformation symbolInfo = either.getLeft();
-                treeElements.add(new LSPStructureViewFactory.LSPStructureViewElement(new LSPPsiSymbol(symbolInfo.getKind(), symbolInfo.getName(), psiFile.getProject(), DocumentUtils.LSPPosToOffset(editor, symbolInfo.getLocation().getRange().getStart()), DocumentUtils.LSPPosToOffset(editor, symbolInfo.getLocation().getRange().getEnd()), psiFile.getContainingFile())));
+                treeElements.add(new LSPStructureViewFactory.LSPStructureViewElement(new LSPPsiSymbol(symbolInfo.getKind(), symbolInfo.getName(), psiFile.getProject(), DocumentUtils.LSPPosToOffset(editor, symbolInfo.getLocation().getRange().getStart()), DocumentUtils.LSPPosToOffset(editor, symbolInfo.getLocation().getRange().getEnd()), psiFile)));
               } else if (either.isRight()) {
                 final DocumentSymbol docSymbol = either.getRight();
                 treeElements.add(new LSPStructureViewFactory.LSPStructureViewElement(
-                        new LSPPsiSymbol(docSymbol.getKind(), docSymbol.getName(), psiFile.getProject(), DocumentUtils.LSPPosToOffset(editor, docSymbol.getRange().getStart()), DocumentUtils.LSPPosToOffset(editor, docSymbol.getRange().getEnd()), psiFile.getContainingFile())));
+                        new LSPPsiSymbol(docSymbol.getKind(), docSymbol.getName(), psiFile.getProject(), DocumentUtils.LSPPosToOffset(editor, docSymbol.getRange().getStart()), DocumentUtils.LSPPosToOffset(editor, docSymbol.getRange().getEnd()), psiFile)));
               }
             }
           }
@@ -78,11 +74,8 @@ public final class LSPStructureViewFactory implements PsiStructureViewFactory {
           e.printStackTrace();
         }
       }
-    });
   }
 
-
-  @Nullable
   @Override
   public StructureViewBuilder getStructureViewBuilder(@NotNull final PsiFile psiFile) {
     return new TreeBasedStructureViewBuilder() {
@@ -104,12 +97,11 @@ public final class LSPStructureViewFactory implements PsiStructureViewFactory {
             debouncer = CompletableFuture.runAsync(() -> {
               try {
                 sleep(500);
-                loadSymbols(lspStructureViewModel, editor, psiFile);
               } catch (InterruptedException e) {
                 e.printStackTrace();
               }
               debouncer = null;
-            });
+            }).thenRun( ()-> loadSymbols(lspStructureViewModel, editor, psiFile));
           }
         });
 
@@ -181,8 +173,7 @@ public final class LSPStructureViewFactory implements PsiStructureViewFactory {
 
     @Override
     public @NotNull Grouper[] getGroupers() {
-      // TODO: create some SymbolKindGrouper
-      return super.getGroupers();
+      return new Grouper[]{new SymbolGrouper()};
     }
 
     @NotNull
@@ -197,10 +188,76 @@ public final class LSPStructureViewFactory implements PsiStructureViewFactory {
 
     @Override
     public boolean isAlwaysLeaf(StructureViewTreeElement element) {
-      return false; //element instanceof PlainTextLanguage;
+      return element.getValue() instanceof LSPPsiSymbol;
     }
 
   }
 
+
+
+  public class SymbolGrouper implements Grouper{
+    @NonNls
+    public static final String ID = "GROUP_BY_SYMBOLKIND";
+
+    @Override
+    @NotNull
+    // TODO: grouping by symbolkind does currently not work!
+    public Collection<Group> group(@NotNull AbstractTreeNode<?> parent, @NotNull Collection<TreeElement> children) {
+      Map<SymbolKind,List<TreeElement>> result = new HashMap<>();
+
+      for (TreeElement o : children) {
+        if (o instanceof LSPStructureViewElement) {
+          LSPPsiSymbol element = (LSPPsiSymbol) ((LSPStructureViewElement) o).getValue();
+          final List<TreeElement> list = result.computeIfAbsent(element.getKind(), k -> new ArrayList<>());
+          list.add(o);
+        }
+      }
+
+      List<Group> groupList = new ArrayList<>();
+      for (Map.Entry<SymbolKind, List<TreeElement>> symbolKindListEntry : result.entrySet()) {
+        groupList.add(new Group(){
+
+          @Override
+          public @NotNull ItemPresentation getPresentation() {
+            return new ItemPresentation() {
+              @Override
+              public @Nullable String getPresentableText() {
+                return "SymbolKind "+ symbolKindListEntry.getKey();
+              }
+
+              @Override
+              public @Nullable String getLocationString() {
+                return "";
+              }
+
+              @Override
+              public @Nullable Icon getIcon(boolean unused) {
+                return null;
+              }
+            };
+          }
+
+          @Override
+          public @NotNull Collection<TreeElement> getChildren() {
+            return symbolKindListEntry.getValue();
+          }
+        });
+      }
+
+      return groupList;
+    }
+
+    @Override
+    @NotNull
+    public ActionPresentation getPresentation() {
+      return new ActionPresentationData("Groub by Symbolkind", null, AllIcons.Actions.GroupBy);
+    }
+
+    @Override
+    @NotNull
+    public String getName() {
+      return ID;
+    }
+  }
 
 }

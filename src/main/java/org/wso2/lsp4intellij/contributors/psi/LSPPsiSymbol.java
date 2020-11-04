@@ -11,6 +11,8 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 
 public class LSPPsiSymbol extends LSPPsiElement{
+
+  @NotNull
   private final SymbolKind kind;
 
   /**
@@ -20,9 +22,14 @@ public class LSPPsiSymbol extends LSPPsiElement{
    * @param end     The offset where it ends
    * @param file
    */
-  public LSPPsiSymbol(SymbolKind kind, String name, @NotNull Project project, int start, int end, PsiFile file) {
+  public LSPPsiSymbol(@NotNull SymbolKind kind, @NotNull String name, @NotNull Project project, int start, int end, PsiFile file) {
     super(name, project, start, end, file);
     this.kind = kind;
+  }
+
+  @NotNull
+  public SymbolKind getKind() {
+    return kind;
   }
 
   @Override
