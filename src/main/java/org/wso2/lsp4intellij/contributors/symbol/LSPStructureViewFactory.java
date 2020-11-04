@@ -35,10 +35,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
+
+import static java.lang.Thread.sleep;
 
 public final class LSPStructureViewFactory implements PsiStructureViewFactory {
 
@@ -87,6 +86,7 @@ public final class LSPStructureViewFactory implements PsiStructureViewFactory {
   @Override
   public StructureViewBuilder getStructureViewBuilder(@NotNull final PsiFile psiFile) {
     return new TreeBasedStructureViewBuilder() {
+      CompletableFuture<Void> debouncer;
       @NotNull
       @Override
       public StructureViewModel createStructureViewModel(@Nullable Editor editor) {
@@ -97,8 +97,20 @@ public final class LSPStructureViewFactory implements PsiStructureViewFactory {
         editor.getDocument().addDocumentListener(new DocumentListener() {
           @Override
           public void documentChanged(@NotNull DocumentEvent event){
-            loadSymbols(lspStructureViewModel, editor, psiFile);
-        }
+            // debounce
+            if(debouncer != null){
+              debouncer.cancel(true);
+            }
+            debouncer = CompletableFuture.runAsync(() -> {
+              try {
+                sleep(500);
+                loadSymbols(lspStructureViewModel, editor, psiFile);
+              } catch (InterruptedException e) {
+                e.printStackTrace();
+              }
+              debouncer = null;
+            });
+          }
         });
 
         return lspStructureViewModel;
