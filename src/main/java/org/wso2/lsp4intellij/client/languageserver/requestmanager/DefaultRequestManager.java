@@ -598,6 +598,16 @@ public class DefaultRequestManager implements RequestManager {
 
     @Override
     public CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>> implementation(ImplementationParams params) {
+        if (checkStatus()) {
+            try {
+                final Either<Boolean, StaticRegistrationOptions> implementationProvider = serverCapabilities.getImplementationProvider();
+                if (implementationProvider.isLeft() == Boolean.TRUE || implementationProvider.getRight() != null) {
+                    return textDocumentService.implementation(params);
+                }
+            } catch (Exception e) {
+                crashed(e);
+            }
+        }
         return null;
     }
 

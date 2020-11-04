@@ -151,48 +151,49 @@ public class LineMarkerProvider extends RelatedItemLineMarkerProvider {
         continue;
       }
 
+      // get and apply subtypes
+      try {
+        final CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>> implementation = requestManager.implementation(new ImplementationParams(textDocument, startPos));
+        final Either<List<? extends Location>, List<? extends LocationLink>> listEither = implementation.get(Timeout.getTimeout(Timeouts.IMPLEMENTATION), TimeUnit.MILLISECONDS);
+        wrapper.notifySuccess(Timeouts.IMPLEMENTATION);
 
-      // FIXME: replace with real target implementations
-      final PsiFile file = PsiManager.getInstance(project).findFile(virtualFile);
-      List<LSPPsiElement> targetElement = Collections.singletonList(new LSPPsiElement(name, project, logicalStart, logicalEnd, file));
+        if (listEither!= null) {
 
-/*
-      wrapper.getRequestManager().implementation( new ImplementationParams(textDocument, startPos)).thenApply(r ->{
+          List<LSPPsiElement> targetElements = new ArrayList<>();
 
-        if (r.isLeft()) {
-          for (Location location : r.getLeft()) {
+          if (listEither.isLeft()) {
+            for (Location location : listEither.getLeft()) {
 
-            // FIXME: set target elements
-            int logicalStart = DocumentUtils.LSPPosToOffset(editor,  new Position(1,5));
-            int logicalEnd = DocumentUtils.LSPPosToOffset(editor, new Position(1, 12));
-            //String name = editor.getDocument().getText(new TextRange(logicalStart, logicalEnd));
+              int logStart = DocumentUtils.LSPPosToOffset(editor, location.getRange().getStart());
+              int logEnd = DocumentUtils.LSPPosToOffset(editor, location.getRange().getEnd());
+              String targetname = editor.getDocument().getText(new TextRange(logStart, logEnd));
 
-            final PsiFile file = PsiManager.getInstance(project).findFile(FileUtils.virtualFileFromURI(location.getUri()));
-            PsiElement targetElement = new LSPPsiElement("nonmatching-target-name", project, logicalStart, logicalEnd, file);
+              final PsiFile file = PsiManager.getInstance(project).findFile(FileUtils.virtualFileFromURI(location.getUri()));
+              targetElements.add(new LSPPsiElement(targetname, project, logStart, logEnd, file));
 
+            }
+          }else if (listEither.isRight()) {
+            for (LocationLink locationLink : listEither.getRight()) {
+              // TODO: implement
+            }
+          }
+
+          if(!targetElements.isEmpty()) {
             NavigationGutterIconBuilder<PsiElement> builder =
                     NavigationGutterIconBuilder.create(AllIcons.Gutter.ImplementedMethod)
-                            .setTargets( targetElement )
+                            .setTargets(targetElements)
                             .setTooltipText("Navigate to Overriding Method.");
-            result.add(builder.createLineMarkerInfo(lspPsiSymbol));
-
+            final RelatedItemLineMarkerInfo<PsiElement> lineMarkerInfo = builder.createLineMarkerInfo(lspPsiSymbol);
+            result.add(lineMarkerInfo);
           }
-        }else if (r.isRight()) {
-          for (LocationLink locationLink : r.getRight()) {
-            // TODO: implement
 
-          }
         }
-        return r;
-      });
-        */
 
-      NavigationGutterIconBuilder<PsiElement> builder =
-              NavigationGutterIconBuilder.create(AllIcons.Gutter.ImplementedMethod)
-                      .setTargets(targetElement)
-                      .setTooltipText("Navigate to Overriding Method.");
-      final RelatedItemLineMarkerInfo<PsiElement> lineMarkerInfo = builder.createLineMarkerInfo(lspPsiSymbol);
-      result.add(lineMarkerInfo);
+      } catch (InterruptedException | TimeoutException | ExecutionException e) {
+        wrapper.notifyFailure(Timeouts.IMPLEMENTATION);
+        e.printStackTrace();
+      }
+
     }
 
   }

@@ -90,6 +90,7 @@ public class DefaultLanguageClient implements LanguageClient {
         textDocumentClientCapabilities.setSignatureHelp(new SignatureHelpCapabilities());
         textDocumentClientCapabilities.setSynchronization(new SynchronizationCapabilities(true, true, true));
         textDocumentClientCapabilities.setDocumentSymbol(new DocumentSymbolCapabilities(new SymbolKindCapabilities(supportedSymbols)));
+        textDocumentClientCapabilities.setImplementation(new ImplementationCapabilities(false, false));
 
         initParams.setCapabilities(
                 new ClientCapabilities(workspaceClientCapabilities, textDocumentClientCapabilities, null));
