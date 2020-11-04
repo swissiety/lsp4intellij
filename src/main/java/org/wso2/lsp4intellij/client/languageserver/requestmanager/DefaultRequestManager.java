@@ -135,11 +135,9 @@ public class DefaultRequestManager implements RequestManager {
                 return server.initialize(params);
             } catch (Exception e) {
                 crashed(e);
-                return null;
             }
-        } else {
-            return null;
         }
+        return null;
     }
 
     @Override
@@ -160,7 +158,6 @@ public class DefaultRequestManager implements RequestManager {
                 return server.shutdown();
             } catch (Exception e) {
                 crashed(e);
-                return null;
             }
         }
         return null;
@@ -184,7 +181,6 @@ public class DefaultRequestManager implements RequestManager {
                 return textDocumentService;
             } catch (Exception e) {
                 crashed(e);
-                return null;
             }
         }
         return null;
@@ -197,11 +193,9 @@ public class DefaultRequestManager implements RequestManager {
                 return workspaceService;
             } catch (Exception e) {
                 crashed(e);
-                return null;
             }
-        } else {
-            return null;
         }
+        return null;
     }
 
     // Workspace service
@@ -231,7 +225,9 @@ public class DefaultRequestManager implements RequestManager {
     public CompletableFuture<List<? extends SymbolInformation>> symbol(WorkspaceSymbolParams params) {
         if (checkStatus()) {
             try {
-                return serverCapabilities.getWorkspaceSymbolProvider() == Boolean.TRUE ? workspaceService.symbol(params) : null;
+                if (serverCapabilities.getWorkspaceSymbolProvider() == Boolean.TRUE) {
+                    return workspaceService.symbol(params);
+                }
             } catch (Exception e) {
                 crashed(e);
             }
@@ -242,10 +238,11 @@ public class DefaultRequestManager implements RequestManager {
     public CompletableFuture<Object> executeCommand(ExecuteCommandParams params) {
         if (checkStatus()) {
             try {
-                return serverCapabilities.getExecuteCommandProvider() != null ? workspaceService.executeCommand(params) : null;
+                if (serverCapabilities.getExecuteCommandProvider() != null) {
+                    return workspaceService.executeCommand(params);
+                }
             } catch (Exception e) {
                 crashed(e);
-                return null;
             }
         }
         return null;
@@ -256,7 +253,8 @@ public class DefaultRequestManager implements RequestManager {
     public void didOpen(DidOpenTextDocumentParams params) {
         if (checkStatus()) {
             try {
-                if (textDocumentOptions == null || textDocumentOptions.getOpenClose()) {
+                // TODO: [ms] check -> does unconfigured mean didOpen()?
+                if (textDocumentOptions == null || textDocumentOptions.getOpenClose() == Boolean.TRUE) {
                     textDocumentService.didOpen(params);
                 }
             } catch (Exception e) {
@@ -402,7 +400,7 @@ public class DefaultRequestManager implements RequestManager {
     public CompletableFuture<List<? extends Location>> references(ReferenceParams params) {
         if (checkStatus()) {
             try {
-                if (serverCapabilities.getReferencesProvider() != null && serverCapabilities.getReferencesProvider()) {
+                if (serverCapabilities.getReferencesProvider() != null && serverCapabilities.getReferencesProvider()== Boolean.TRUE) {
                     return textDocumentService.references(params);
                 }
             } catch (Exception e) {
@@ -421,7 +419,7 @@ public class DefaultRequestManager implements RequestManager {
     public CompletableFuture<List<? extends DocumentHighlight>> documentHighlight(DocumentHighlightParams params) {
         if (checkStatus()) {
             try {
-                if (serverCapabilities.getDocumentHighlightProvider()) {
+                if (serverCapabilities.getDocumentHighlightProvider() == Boolean.TRUE) {
                     return textDocumentService.documentHighlight(params);
                 }
             } catch (Exception e) {
@@ -435,7 +433,7 @@ public class DefaultRequestManager implements RequestManager {
     public CompletableFuture<List<Either<SymbolInformation, DocumentSymbol>>> documentSymbol(DocumentSymbolParams params) {
         if (checkStatus()) {
             try {
-                if (serverCapabilities.getDocumentSymbolProvider()) {
+                if (serverCapabilities.getDocumentSymbolProvider() == Boolean.TRUE) {
                     return textDocumentService.documentSymbol(params);
                 }
             } catch (Exception e) {
@@ -449,7 +447,7 @@ public class DefaultRequestManager implements RequestManager {
     public CompletableFuture<List<? extends TextEdit>> formatting(DocumentFormattingParams params) {
         if (checkStatus()) {
             try {
-                if (serverCapabilities.getDocumentFormattingProvider()) {
+                if (serverCapabilities.getDocumentFormattingProvider()== Boolean.TRUE) {
                     return textDocumentService.formatting(params);
                 }
             } catch (Exception e) {
@@ -496,7 +494,7 @@ public class DefaultRequestManager implements RequestManager {
     public CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>> definition(DefinitionParams params) {
         if (checkStatus()) {
             try {
-                if (serverCapabilities.getDefinitionProvider()) {
+                if (serverCapabilities.getDefinitionProvider() == Boolean.TRUE) {
                     return textDocumentService.definition(params);
                 }
             } catch (Exception e) {
@@ -540,7 +538,7 @@ public class DefaultRequestManager implements RequestManager {
         if (checkStatus()) {
             try {
                 final CodeLensOptions codeLensProvider = serverCapabilities.getCodeLensProvider();
-                if (codeLensProvider != null && codeLensProvider.isResolveProvider()) {
+                if (codeLensProvider != null && codeLensProvider.isResolveProvider() == Boolean.TRUE) {
                     return textDocumentService.resolveCodeLens(unresolved);
                 }
             } catch (Exception e) {
@@ -570,8 +568,23 @@ public class DefaultRequestManager implements RequestManager {
         if (checkStatus()) {
             try {
                 final DocumentLinkOptions documentLinkProvider = serverCapabilities.getDocumentLinkProvider();
-                if (documentLinkProvider != null && documentLinkProvider.getResolveProvider()) {
+                if (documentLinkProvider != null && documentLinkProvider.getResolveProvider() == Boolean.TRUE) {
                     return textDocumentService.documentLinkResolve(unresolved);
+                }
+            } catch (Exception e) {
+                crashed(e);
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>> implementation(ImplementationParams params) {
+        if (checkStatus()) {
+            try {
+                final Either<Boolean, StaticRegistrationOptions> implementationProvider = serverCapabilities.getImplementationProvider();
+                if (implementationProvider.isLeft() == Boolean.TRUE || implementationProvider.getRight() != null) {
+                    return textDocumentService.implementation(params);
                 }
             } catch (Exception e) {
                 crashed(e);
@@ -597,21 +610,6 @@ public class DefaultRequestManager implements RequestManager {
     }
 
     @Override
-    public CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>> implementation(ImplementationParams params) {
-        if (checkStatus()) {
-            try {
-                final Either<Boolean, StaticRegistrationOptions> implementationProvider = serverCapabilities.getImplementationProvider();
-                if (implementationProvider.isLeft() == Boolean.TRUE || implementationProvider.getRight() != null) {
-                    return textDocumentService.implementation(params);
-                }
-            } catch (Exception e) {
-                crashed(e);
-            }
-        }
-        return null;
-    }
-
-    @Override
     public CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>> typeDefinition(TypeDefinitionParams params) {
         return null;
     }
@@ -631,7 +629,7 @@ public class DefaultRequestManager implements RequestManager {
         return null;
     }
 
-    public boolean checkStatus() {
+    private boolean checkStatus() {
         return wrapper.getStatus() == ServerStatus.INITIALIZED;
     }
 
