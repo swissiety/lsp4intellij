@@ -777,4 +777,12 @@ public class LSPPsiElement implements PsiNameIdentifierOwner, NavigatablePsiElem
     protected void setUserMap(KeyFMap map) {
         myUserMap = map;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if(!(o instanceof LSPPsiSymbol)){
+            return false;
+        }
+        return start == ((LSPPsiSymbol) o).start && end == ((LSPPsiSymbol) o).end && name.equals(((LSPPsiSymbol) o).getName()) && file.equals(((LSPPsiSymbol) o).getContainingFile());
+    }
 }
