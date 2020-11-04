@@ -62,7 +62,7 @@ public class DefaultLanguageClient implements LanguageClient {
         initParams.setRootUri(FileUtils.pathToUri(projectRootPath));
         initParams.setWorkspaceFolders(ServiceManager.getService(IntellijLanguageClient.class).getWorkspaceFolderList(context.getProject()));
 
-        final List<SymbolKind> supportedSymbols = Arrays.asList(SymbolKind.Class, SymbolKind.Interface, SymbolKind.Method, SymbolKind.Field);
+        final List<SymbolKind> supportedSymbols = Arrays.asList(SymbolKind.Class, SymbolKind.Interface, SymbolKind.Method, SymbolKind.Constructor, SymbolKind.Field, SymbolKind.Constant, SymbolKind.Function);
 
         //TODO update capabilities when implemented
         WorkspaceClientCapabilities workspaceClientCapabilities = new WorkspaceClientCapabilities();

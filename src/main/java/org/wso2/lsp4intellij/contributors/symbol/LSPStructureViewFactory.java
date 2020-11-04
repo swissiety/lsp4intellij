@@ -25,6 +25,7 @@ import org.wso2.lsp4intellij.contributors.psi.LSPPsiSymbol;
 import org.wso2.lsp4intellij.requests.Timeout;
 import org.wso2.lsp4intellij.requests.Timeouts;
 import org.wso2.lsp4intellij.utils.ApplicationUtils;
+import org.wso2.lsp4intellij.utils.DocumentUtils;
 import org.wso2.lsp4intellij.utils.FileUtils;
 
 import javax.annotation.Nullable;
@@ -64,30 +65,26 @@ public final class LSPStructureViewFactory implements PsiStructureViewFactory {
             try {
               eithers = listCompletableFuture.get(Timeout.getTimeout(Timeouts.SYMBOLS), TimeUnit.MILLISECONDS);
               wrapper.notifySuccess(Timeouts.SYMBOLS);
+
+              if(eithers != null) {
+                for (Either<SymbolInformation, DocumentSymbol> either : eithers) {
+                  if (either.isLeft()) {
+                    final SymbolInformation symbolInfo = either.getLeft();
+                    treeElements.add(new LSPStructureViewFactory.LSPStructureViewElement(new LSPPsiSymbol(symbolInfo.getKind(), symbolInfo.getName(), psiFile.getProject(), DocumentUtils.LSPPosToOffset(editor, symbolInfo.getLocation().getRange().getStart()), DocumentUtils.LSPPosToOffset(editor, symbolInfo.getLocation().getRange().getEnd()), psiFile.getContainingFile())));
+                  } else if (either.isRight()) {
+                    final DocumentSymbol docSymbol = either.getRight();
+                    treeElements.add(new LSPStructureViewFactory.LSPStructureViewElement(
+                            new LSPPsiSymbol(docSymbol.getKind(), docSymbol.getName(), psiFile.getProject(), DocumentUtils.LSPPosToOffset(editor, docSymbol.getRange().getStart()), DocumentUtils.LSPPosToOffset(editor, docSymbol.getRange().getEnd()), psiFile.getContainingFile())));
+                  }
+                }
+              }
+
+              lspStructureViewModel.fireModelUpdate();
+
             }catch (InterruptedException | ExecutionException | TimeoutException e) {
               wrapper.notifyFailure(Timeouts.SYMBOLS);
               e.printStackTrace();
-              return;
             }
-
-            if(eithers == null){
-              return;
-            }
-
-            for (Either<SymbolInformation, DocumentSymbol> either : eithers) {
-              // TODO: update positions
-              if (either.isLeft()) {
-                final SymbolInformation symbolInfo = either.getLeft();
-                // DocumentUtils.LSPPosToOffset(editor, symbolInfo.getLocation().getRange().getStart());
-                treeElements.add(new LSPStructureViewFactory.LSPStructureViewElement(new LSPPsiSymbol(symbolInfo.getKind(), symbolInfo.getName(), psiFile.getProject(), 1, 3, psiFile.getContainingFile())));
-              }else if (either.isRight()) {
-                final DocumentSymbol docSymbol = either.getRight();
-                // DocumentUtils.LSPPosToOffset(editor, docSymbol.getLocation().getRange().getStart());
-                treeElements.add(new LSPStructureViewFactory.LSPStructureViewElement(new LSPPsiSymbol(docSymbol.getKind(), docSymbol.getName(), psiFile.getProject(), 1, 3, psiFile.getContainingFile())));
-              }
-            }
-
-            lspStructureViewModel.fireModelUpdate();
           }
         });
 
@@ -159,7 +156,7 @@ public final class LSPStructureViewFactory implements PsiStructureViewFactory {
 
     @Override
     public @NotNull Grouper[] getGroupers() {
-      // TODO: group by kind
+      // TODO: create some SymbolKindGrouper
       return super.getGroupers();
     }
 

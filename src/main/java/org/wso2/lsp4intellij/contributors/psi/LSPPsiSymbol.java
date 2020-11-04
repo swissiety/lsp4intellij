@@ -46,11 +46,15 @@ public class LSPPsiSymbol extends LSPPsiElement{
             case Interface:
               return AllIcons.Nodes.Interface;
             case Field:
-            case Constant:
               return AllIcons.Nodes.Field;
+            case Constant:
+              return AllIcons.Nodes.Constant;
             case Method:
             case Constructor:
               return AllIcons.Nodes.Method;
+            case Function:
+              return AllIcons.Nodes.Function;
+
           }
           return AllIcons.Nodes.AnonymousClass;
       }
