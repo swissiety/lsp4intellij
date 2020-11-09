@@ -57,7 +57,6 @@ import org.eclipse.lsp4j.jsonrpc.JsonRpcException;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.jsonrpc.messages.Tuple;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.wso2.lsp4intellij.actions.LSPReferencesAction;
 import org.wso2.lsp4intellij.client.languageserver.ServerOptions;
 import org.wso2.lsp4intellij.client.languageserver.requestmanager.RequestManager;
@@ -340,7 +339,7 @@ public class EditorEventManager {
      * @return The location of the definition
      */
     private Location requestDefinition(Position position) {
-        TextDocumentPositionParams params = new TextDocumentPositionParams(identifier, position);
+        DefinitionParams params = new DefinitionParams(identifier, position);
         CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>> request =
                 requestManager.definition(params);
 
@@ -353,8 +352,15 @@ public class EditorEventManager {
             Either<List<? extends Location>, List<? extends LocationLink>> definition =
                     request.get(getTimeout(DEFINITION), TimeUnit.MILLISECONDS);
             wrapper.notifySuccess(Timeouts.DEFINITION);
+
+            if(definition == null){
+                return null;
+            }
+
             if (definition.isLeft() && !definition.getLeft().isEmpty()) {
                 return definition.getLeft().get(0);
+            }else if( definition.isRight() && !definition.getLeft().isEmpty()){
+                // TODO: implement
             }
         } catch (TimeoutException e) {
             LOG.warn(e);
@@ -730,7 +736,7 @@ public class EditorEventManager {
      */
     private void requestAndShowDoc(LogicalPosition editorPos, Point point) {
         Position serverPos = computableReadAction(() -> DocumentUtils.logicalToLSPPos(editorPos, editor));
-        CompletableFuture<Hover> request = requestManager.hover(new TextDocumentPositionParams(identifier, serverPos));
+        CompletableFuture<Hover> request = requestManager.hover(new HoverParams(identifier, serverPos));
         if (request == null) {
             return;
         }
@@ -739,8 +745,6 @@ public class EditorEventManager {
             wrapper.notifySuccess(Timeouts.HOVER);
 
             if (hover == null) {
-                LOG.warn(String.format("Hover is null for file %s and pos (%d;%d)", identifier.getUri(),
-                        serverPos.getLine(), serverPos.getCharacter()));
                 return;
             }
 
@@ -1165,7 +1169,7 @@ public class EditorEventManager {
         editor.removeEditorMouseListener(mouseListener);
         editor.removeEditorMouseMotionListener(mouseMotionListener);
         editor.getCaretModel().removeCaretListener(caretListener);
-        // Todo - Implement
+        // TODO: Implement
         // editor.getSelectionModel.removeSelectionListener(selectionListener)
     }
 

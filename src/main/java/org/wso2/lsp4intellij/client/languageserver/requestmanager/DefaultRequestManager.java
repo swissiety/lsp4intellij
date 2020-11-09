@@ -367,7 +367,7 @@ public class DefaultRequestManager implements RequestManager {
     public CompletableFuture<Hover> hover(HoverParams params) {
         if (checkStatus()) {
             try {
-                if (serverCapabilities.getHoverProvider() != null) {
+                if (serverCapabilities.getHoverProvider() == Boolean.TRUE) {
                     return textDocumentService.hover(params);
                 }
             } catch (Exception e) {
