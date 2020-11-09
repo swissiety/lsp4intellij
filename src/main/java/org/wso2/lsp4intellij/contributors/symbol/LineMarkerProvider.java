@@ -86,13 +86,16 @@ public class LineMarkerProvider extends RelatedItemLineMarkerProvider {
     }
     final CompletableFuture<List<Either<SymbolInformation, DocumentSymbol>>> listCompletableFuture = requestManager.documentSymbol(new DocumentSymbolParams(textDocument));
 
+    if(listCompletableFuture == null){
+      return;
+    }
+
     List<Either<SymbolInformation, DocumentSymbol>> eithers;
     try {
       eithers = listCompletableFuture.get(Timeout.getTimeout(Timeouts.SYMBOLS), TimeUnit.MILLISECONDS);
       wrapper.notifySuccess(Timeouts.SYMBOLS);
     }catch (InterruptedException | ExecutionException | TimeoutException e) {
       wrapper.notifyFailure(Timeouts.SYMBOLS);
-      e.printStackTrace();
       return;
     }
 
