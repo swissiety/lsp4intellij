@@ -358,6 +358,7 @@ public class EditorEventManager {
             }
 
             if (definition.isLeft() && !definition.getLeft().isEmpty()) {
+                // TODO: handle multiple definitions!
                 return definition.getLeft().get(0);
             }else if( definition.isRight() && !definition.getLeft().isEmpty()){
                 // TODO: implement
@@ -387,10 +388,7 @@ public class EditorEventManager {
      */
     public Pair<List<PsiElement>, List<VirtualFile>> references(int offset, boolean getOriginalElement, boolean close) {
         Position lspPos = DocumentUtils.offsetToLSPPos(editor, offset);
-        ReferenceParams params = new ReferenceParams(new ReferenceContext(getOriginalElement));
-        params.setPosition(lspPos);
-        params.setTextDocument(identifier);
-        CompletableFuture<List<? extends Location>> request = requestManager.references(params);
+        CompletableFuture<List<? extends Location>> request = requestManager.references(new ReferenceParams( identifier, lspPos, new ReferenceContext(getOriginalElement)));
         if (request != null) {
             try {
                 List<? extends Location> res = request.get(getTimeout(REFERENCES), TimeUnit.MILLISECONDS);
