@@ -64,7 +64,7 @@ public class DefaultLanguageClient implements LanguageClient {
 
         final List<SymbolKind> supportedSymbols = Arrays.asList(SymbolKind.Class, SymbolKind.Interface, SymbolKind.Method, SymbolKind.Constructor, SymbolKind.Field, SymbolKind.Constant, SymbolKind.Function);
 
-        //TODO update capabilities when implemented
+        // TODO: update capabilities when implemented
         WorkspaceClientCapabilities workspaceClientCapabilities = new WorkspaceClientCapabilities();
         workspaceClientCapabilities.setApplyEdit(true);
         workspaceClientCapabilities.setDidChangeWatchedFiles(new DidChangeWatchedFilesCapabilities());
@@ -76,18 +76,18 @@ public class DefaultLanguageClient implements LanguageClient {
 
         TextDocumentClientCapabilities textDocumentClientCapabilities = new TextDocumentClientCapabilities();
         textDocumentClientCapabilities.setPublishDiagnostics( new PublishDiagnosticsCapabilities(true, new DiagnosticsTagSupport(), false));
-        textDocumentClientCapabilities.setCodeAction(new CodeActionCapabilities());
+        textDocumentClientCapabilities.setCodeAction(new CodeActionCapabilities(false));
         textDocumentClientCapabilities.setCompletion(new CompletionCapabilities(new CompletionItemCapabilities(true)));
-        textDocumentClientCapabilities.setDefinition(new DefinitionCapabilities());
-        textDocumentClientCapabilities.setDocumentHighlight(new DocumentHighlightCapabilities());
-        textDocumentClientCapabilities.setFormatting(new FormattingCapabilities());
-        textDocumentClientCapabilities.setHover(new HoverCapabilities());
-        textDocumentClientCapabilities.setOnTypeFormatting(new OnTypeFormattingCapabilities());
-        textDocumentClientCapabilities.setRangeFormatting(new RangeFormattingCapabilities());
-        textDocumentClientCapabilities.setReferences(new ReferencesCapabilities());
-        textDocumentClientCapabilities.setRename(new RenameCapabilities());
+        textDocumentClientCapabilities.setDefinition(new DefinitionCapabilities( false, false));
+        textDocumentClientCapabilities.setDocumentHighlight(new DocumentHighlightCapabilities(false));
+        textDocumentClientCapabilities.setFormatting(new FormattingCapabilities(false));
+        textDocumentClientCapabilities.setHover(new HoverCapabilities(false));
+        textDocumentClientCapabilities.setOnTypeFormatting(new OnTypeFormattingCapabilities(false));
+        textDocumentClientCapabilities.setRangeFormatting(new RangeFormattingCapabilities(false));
+        textDocumentClientCapabilities.setReferences(new ReferencesCapabilities(false));
+        textDocumentClientCapabilities.setRename(new RenameCapabilities(false));
         textDocumentClientCapabilities.setSemanticHighlightingCapabilities(new SemanticHighlightingCapabilities(false));
-        textDocumentClientCapabilities.setSignatureHelp(new SignatureHelpCapabilities());
+        textDocumentClientCapabilities.setSignatureHelp(new SignatureHelpCapabilities(false));
         textDocumentClientCapabilities.setSynchronization(new SynchronizationCapabilities(true, true, true));
         textDocumentClientCapabilities.setDocumentSymbol(new DocumentSymbolCapabilities(new SymbolKindCapabilities(supportedSymbols)));
         textDocumentClientCapabilities.setImplementation(new ImplementationCapabilities(false, false));
