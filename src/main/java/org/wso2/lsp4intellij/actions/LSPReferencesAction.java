@@ -30,22 +30,18 @@ import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiElement;
-import com.intellij.ui.JBColor;
 import com.intellij.ui.LightweightHint;
 import com.intellij.usageView.UsageInfo;
 import com.intellij.usageView.UsageViewUtil;
-import com.intellij.usages.Usage;
-import com.intellij.usages.UsageInfo2UsageAdapter;
-import com.intellij.usages.UsageTarget;
-import com.intellij.usages.UsageViewManager;
-import com.intellij.usages.UsageViewPresentation;
+import com.intellij.usages.*;
+import com.intellij.util.ui.JBUI;
 import org.wso2.lsp4intellij.editor.EditorEventManager;
 import org.wso2.lsp4intellij.editor.EditorEventManagerBase;
 
+import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
-import javax.swing.*;
 
 /**
  * Action for references / see usages (SHIFT+ALT+F7)
@@ -85,7 +81,7 @@ public class LSPReferencesAction extends DumbAwareAction {
             short constraint = HintManager.ABOVE;
             int flags = HintManager.HIDE_BY_ANY_KEY | HintManager.HIDE_BY_TEXT_CHANGE | HintManager.HIDE_BY_SCROLLING;
             JLabel label = new JLabel("No references found");
-            label.setBackground(new JBColor(new Color(150, 0, 0), new Color(150, 0, 0)));
+            label.setBackground(JBUI.CurrentTheme.Validator.errorBackgroundColor());
             LightweightHint hint = new LightweightHint(label);
             Point p = HintManagerImpl.getHintPosition(hint, editor, position, constraint);
             HintManagerImpl.getInstanceImpl().showEditorHint(hint, editor, p, flags, 0, false,
