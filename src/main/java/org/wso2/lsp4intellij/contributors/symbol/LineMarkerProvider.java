@@ -157,6 +157,9 @@ public class LineMarkerProvider extends RelatedItemLineMarkerProvider {
       // get and apply subtypes
       try {
         final CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>> implementation = requestManager.implementation(new ImplementationParams(textDocument, startPos));
+        if(implementation == null){
+          return;
+        }
         final Either<List<? extends Location>, List<? extends LocationLink>> listEither = implementation.get(Timeout.getTimeout(Timeouts.IMPLEMENTATION), TimeUnit.MILLISECONDS);
         wrapper.notifySuccess(Timeouts.IMPLEMENTATION);
 

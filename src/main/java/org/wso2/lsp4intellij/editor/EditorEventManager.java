@@ -1336,6 +1336,7 @@ public class EditorEventManager {
                 null);
         final CtrlRangeMarker ctrlRange = getCtrlRange();
 
+        // TODO: [ms] possible duplicate
         if (ctrlRange == null) {
             int offset = editor.logicalPositionToOffset(editor.xyToLogicalPosition(e.getMouseEvent().getPoint()));
             LSPReferencesAction referencesAction = (LSPReferencesAction) ActionManager.getInstance()
@@ -1355,6 +1356,7 @@ public class EditorEventManager {
             int offset = editor.logicalPositionToOffset(editor.xyToLogicalPosition(e.getMouseEvent().getPoint()));
             String locUri = FileUtils.sanitizeURI(loc.getUri());
 
+            // use heuristic to determine if this is already the definition or a usage
             if (identifier.getUri().equals(locUri)
                     && offset >= DocumentUtils.LSPPosToOffset(editor, loc.getRange().getStart())
                     && offset <= DocumentUtils.LSPPosToOffset(editor, loc.getRange().getEnd())) {
