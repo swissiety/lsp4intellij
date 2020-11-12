@@ -145,10 +145,10 @@ public class LineMarkerProvider extends RelatedItemLineMarkerProvider {
         continue;
       }
 
-      // FIXME: set target elements from implementation (in lsp3.16 try it via from typehierarchy and use implementation as fallback)
+      // set target elements from implementation (in lsp3.16 try it via from typehierarchy and use implementation as fallback)
       int logicalStart = DocumentUtils.LSPPosToOffset(editor, new Position(0, 5));
       int logicalEnd = DocumentUtils.LSPPosToOffset(editor, new Position(0, 12));
-      String name = editor.getDocument().getText(new TextRange(logicalStart, logicalEnd));
+      String psiText = editor.getDocument().getText(new TextRange(logicalStart, logicalEnd));
 
       if (logicalStart < 0 || logicalEnd < 0) {
         continue;
@@ -170,12 +170,12 @@ public class LineMarkerProvider extends RelatedItemLineMarkerProvider {
           if (listEither.isLeft()) {
             for (Location location : listEither.getLeft()) {
 
-              int logStart = DocumentUtils.LSPPosToOffset(editor, location.getRange().getStart());
-              int logEnd = DocumentUtils.LSPPosToOffset(editor, location.getRange().getEnd());
-              String targetname = editor.getDocument().getText(new TextRange(logStart, logEnd));
+              int start = DocumentUtils.LSPPosToOffset(editor, location.getRange().getStart());
+              int end = DocumentUtils.LSPPosToOffset(editor, location.getRange().getEnd());
+              String targetname = editor.getDocument().getText(new TextRange(start, end));
 
               final PsiFile file = PsiManager.getInstance(project).findFile(FileUtils.virtualFileFromURI(location.getUri()));
-              targetElements.add(new LSPPsiElement(targetname, project, logStart, logEnd, file));
+              targetElements.add(new LSPPsiElement(targetname, project, start, end, file));
 
             }
           }else if (listEither.isRight()) {
