@@ -400,7 +400,7 @@ public class DefaultRequestManager implements RequestManager {
     public CompletableFuture<List<? extends Location>> references(ReferenceParams params) {
         if (checkStatus()) {
             try {
-                if (serverCapabilities.getReferencesProvider() != null && serverCapabilities.getReferencesProvider()== Boolean.TRUE) {
+                if (serverCapabilities.getReferencesProvider() == Boolean.TRUE) {
                     return textDocumentService.references(params);
                 }
             } catch (Exception e) {
@@ -594,6 +594,21 @@ public class DefaultRequestManager implements RequestManager {
     }
 
     @Override
+    public CompletableFuture<List<FoldingRange>> foldingRange(FoldingRangeRequestParams params) {
+        if (checkStatus()) {
+            try {
+                final Either<Boolean, FoldingRangeProviderOptions> foldingProvider = serverCapabilities.getFoldingRangeProvider();
+                if (foldingProvider.isLeft() == Boolean.TRUE || foldingProvider.getRight() != null) {
+                    return textDocumentService.foldingRange(params);
+                }
+            } catch (Exception e) {
+                crashed(e);
+            }
+        }
+        return null;
+    }
+
+    @Override
     public CompletableFuture<WorkspaceEdit> rename(RenameParams params) {
         // FIXME: rename request
         //        if (checkStatus()) {
@@ -621,11 +636,6 @@ public class DefaultRequestManager implements RequestManager {
 
     @Override
     public CompletableFuture<List<ColorPresentation>> colorPresentation(ColorPresentationParams params) {
-        return null;
-    }
-
-    @Override
-    public CompletableFuture<List<FoldingRange>> foldingRange(FoldingRangeRequestParams params) {
         return null;
     }
 
