@@ -151,8 +151,8 @@ public class DocumentUtils {
                 int tabSize = getTabSize(editor);
                 int column = tabs * tabSize + lineTextForPosition.length() - tabs;
                 int offset = editor.logicalPositionToOffset(new LogicalPosition(line, column));
-                if (pos.getCharacter() >= lineText.length()) {
-                    LOG.warn(String.format("LSPPOS outofbounds : %s line : %s column : %d offset : %d", pos,
+                if (pos.getCharacter() >= lineText.length() && pos.getCharacter() != 0) {
+                    LOG.warn(String.format("LSPPOS outofbounds for line: %s line : %s column : %d offset : %d", pos,
                             lineText, column, offset));
                 }
                 int docLength = doc.getTextLength();
