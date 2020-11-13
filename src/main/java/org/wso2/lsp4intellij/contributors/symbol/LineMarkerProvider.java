@@ -145,15 +145,6 @@ public class LineMarkerProvider extends RelatedItemLineMarkerProvider {
         continue;
       }
 
-      // set target elements from implementation (in lsp3.16 try it via from typehierarchy and use implementation as fallback)
-      int logicalStart = DocumentUtils.LSPPosToOffset(editor, new Position(0, 5));
-      int logicalEnd = DocumentUtils.LSPPosToOffset(editor, new Position(0, 12));
-      String psiText = editor.getDocument().getText(new TextRange(logicalStart, logicalEnd));
-
-      if (logicalStart < 0 || logicalEnd < 0) {
-        continue;
-      }
-
       // get and apply subtypes
       try {
         final CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>> implementation = requestManager.implementation(new ImplementationParams(textDocument, startPos));
@@ -170,9 +161,15 @@ public class LineMarkerProvider extends RelatedItemLineMarkerProvider {
           if (listEither.isLeft()) {
             for (Location location : listEither.getLeft()) {
 
+              // FIXME: get location from the correct editor with file from uri!
               int start = DocumentUtils.LSPPosToOffset(editor, location.getRange().getStart());
               int end = DocumentUtils.LSPPosToOffset(editor, location.getRange().getEnd());
-              String targetname = editor.getDocument().getText(new TextRange(start, end));
+              String targetname;
+              if(start <0 || end < 0){
+                targetname = "go to implementation";
+              }else {
+                targetname = editor.getDocument().getText(new TextRange(start, end));
+              }
 
               final PsiFile file = PsiManager.getInstance(project).findFile(FileUtils.virtualFileFromURI(location.getUri()));
               targetElements.add(new LSPPsiElement(targetname, project, start, end, file));

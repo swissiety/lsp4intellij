@@ -61,8 +61,11 @@ public final class LSPStructureViewFactory implements PsiStructureViewFactory {
                 treeElements.add(new LSPStructureViewFactory.LSPStructureViewElement(new LSPPsiSymbol(symbolInfo.getKind(), symbolInfo.getName(), psiFile.getProject(), DocumentUtils.LSPPosToOffset(editor, symbolInfo.getLocation().getRange().getStart()), DocumentUtils.LSPPosToOffset(editor, symbolInfo.getLocation().getRange().getEnd()), psiFile)));
               } else if (either.isRight()) {
                 final DocumentSymbol docSymbol = either.getRight();
+
+                final int start = DocumentUtils.LSPPosToOffset(editor, docSymbol.getRange().getStart());
+                final int end = DocumentUtils.LSPPosToOffset(editor, docSymbol.getRange().getEnd());
                 treeElements.add(new LSPStructureViewFactory.LSPStructureViewElement(
-                        new LSPPsiSymbol(docSymbol.getKind(), docSymbol.getName(), psiFile.getProject(), DocumentUtils.LSPPosToOffset(editor, docSymbol.getRange().getStart()), DocumentUtils.LSPPosToOffset(editor, docSymbol.getRange().getEnd()), psiFile)));
+                        new LSPPsiSymbol(docSymbol.getKind(), docSymbol.getName(), psiFile.getProject(), start, end, psiFile)));
               }
             }
           }
@@ -90,7 +93,7 @@ public final class LSPStructureViewFactory implements PsiStructureViewFactory {
         editor.getDocument().addDocumentListener(new DocumentListener() {
           @Override
           public void documentChanged(@NotNull DocumentEvent event){
-            // debounce
+            // debounce: request if sth changed after a timeout
             if(debouncer != null){
               debouncer.cancel(true);
             }

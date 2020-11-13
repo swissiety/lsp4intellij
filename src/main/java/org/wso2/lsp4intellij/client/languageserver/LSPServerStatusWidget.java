@@ -86,7 +86,7 @@ public class LSPServerStatusWidget implements StatusBarWidget {
 
         List<String> stringList = widgetIDs.computeIfAbsent(project, k -> new ArrayList<>());
         if (stringList.isEmpty()) {
-            // FIXME: [ms] does this make any sense? (placeholder?)
+            // initial "WidgetID"
             stringList.add("Position");
         }
 
