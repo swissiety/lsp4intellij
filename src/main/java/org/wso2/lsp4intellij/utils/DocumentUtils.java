@@ -114,7 +114,10 @@ public class DocumentUtils {
             int line = doc.getLineNumber(offset);
             int lineStart = doc.getLineStartOffset(line);
             String lineTextBeforeOffset = doc.getText(TextRange.create(lineStart, offset));
-            int column = lineTextBeforeOffset.length();
+
+            int tabs = StringUtil.countChars(lineTextBeforeOffset, '\t');
+            int tabSize = getTabSize(editor);
+            int column = lineTextBeforeOffset.length() + tabs - tabs * tabSize ;
             return computableReadAction(() -> new Position(line, column));
         });
     }
@@ -128,9 +131,11 @@ public class DocumentUtils {
      */
     public static int LSPPosToOffset(Editor editor, Position pos) {
         return computableReadAction(() -> {
-            try {
-                if (editor == null || editor.isDisposed()) {
+                if (editor == null) {
                     return -1;
+                }
+                if (editor.isDisposed()) {
+                    return -2;
                 }
                 // lsp and intellij start lines/columns zero-based
 
@@ -142,14 +147,15 @@ public class DocumentUtils {
                 // see https://microsoft.github.io/language-server-protocol/specifications/specification-current/#textDocuments
 
                 Document doc = editor.getDocument();
-                int line = Math.max(0, Math.min(pos.getLine(), doc.getLineCount()));
+                int line = Math.max(0, Math.min(pos.getLine(), doc.getLineCount()-1));
                 String lineText = doc.getText(DocumentUtil.getLineTextRange(doc, line));
+
                 String lineTextForPosition = !lineText.isEmpty() ?
                         lineText.substring(0, min(lineText.length(), pos.getCharacter())) :
                         "";
                 int tabs = StringUtil.countChars(lineTextForPosition, '\t');
                 int tabSize = getTabSize(editor);
-                int column = tabs * tabSize + lineTextForPosition.length() - tabs;
+                int column = tabs * tabSize - tabs + lineTextForPosition.length();
                 int offset = editor.logicalPositionToOffset(new LogicalPosition(line, column));
                 if (pos.getCharacter() >= lineText.length() && pos.getCharacter() != 0) {
                     LOG.warn(String.format("LSPPOS outofbounds for line: %s line : %s column : %d offset : %d", pos,
@@ -160,9 +166,7 @@ public class DocumentUtils {
                     LOG.warn(String.format("Offset greater than text length : %d > %d", offset, docLength));
                 }
                 return Math.min(Math.max(offset, 0), docLength);
-            } catch (IndexOutOfBoundsException e) {
-                return -1;
-            }
+
         });
     }
 
