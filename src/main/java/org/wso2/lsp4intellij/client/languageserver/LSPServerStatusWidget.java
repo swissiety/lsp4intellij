@@ -15,15 +15,14 @@
  */
 package org.wso2.lsp4intellij.client.languageserver;
 
-import com.intellij.codeInsight.hint.HintManager;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.wm.StatusBar;
 import com.intellij.openapi.wm.StatusBarWidget;
 import com.intellij.openapi.wm.WindowManager;
-import com.intellij.ui.awt.RelativePoint;
 import com.intellij.util.Consumer;
+import com.intellij.util.ui.JBUI;
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
@@ -35,7 +34,6 @@ import org.wso2.lsp4intellij.utils.ApplicationUtils;
 import org.wso2.lsp4intellij.utils.GUIUtils;
 
 import javax.swing.*;
-import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -170,10 +168,9 @@ public class LSPServerStatusWidget implements StatusBarWidget {
         public Consumer<MouseEvent> getClickConsumer() {
             return (MouseEvent t) -> {
                 if (wrapper.isRestartable()) {
-                    final JLabel label = new JLabel("restarting");
-                    HintManager.getInstance().showHint(label,
-                            new RelativePoint(t.getComponent(), new Point(0, -label.getHeight())), 0, 500);
-
+                    final JLabel label = new JLabel("Restarting the LSP Connection.");
+                    StatusBar statusBar = WindowManager.getInstance().getStatusBar(project);
+                    statusBar.fireNotificationPopup(label, JBUI.CurrentTheme.NewClassDialog.panelBackground());
                     wrapper.restart();
                     return;
                 }
