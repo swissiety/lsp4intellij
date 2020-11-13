@@ -16,17 +16,9 @@
 package org.wso2.lsp4intellij.client.languageserver;
 
 import com.intellij.codeInsight.hint.HintManager;
-import com.intellij.ide.DataManager;
-import com.intellij.openapi.actionSystem.AnAction;
-import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.DataContext;
-import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.components.ServiceManager;
-import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
-import com.intellij.openapi.ui.popup.JBPopupFactory;
-import com.intellij.openapi.ui.popup.ListPopup;
 import com.intellij.openapi.wm.StatusBar;
 import com.intellij.openapi.wm.StatusBarWidget;
 import com.intellij.openapi.wm.WindowManager;
@@ -186,6 +178,11 @@ public class LSPServerStatusWidget implements StatusBarWidget {
                     return;
                 }
 
+                StringBuilder connectedFiles = new StringBuilder("Connected files :");
+                wrapper.getConnectedFiles().forEach(f -> connectedFiles.append(System.lineSeparator()).append(f));
+                Messages.showInfoMessage(connectedFiles.toString(), "Connected Files");
+
+                /*
                 JBPopupFactory.ActionSelectionAid mnemonics = JBPopupFactory.ActionSelectionAid.MNEMONICS;
                 Component component = t.getComponent();
                 List<AnAction> actions = new ArrayList<>();
@@ -201,9 +198,11 @@ public class LSPServerStatusWidget implements StatusBarWidget {
                 Dimension dimension = popup.getContent().getPreferredSize();
                 Point at = new Point(0, -dimension.height);
                 popup.show(new RelativePoint(t.getComponent(), at));
+                */
             };
         }
 
+        /*
         class ShowConnectedFiles extends AnAction implements DumbAware {
             ShowConnectedFiles() {
                 super("&Show Connected Files", "Show the files connected to the server", null);
@@ -216,6 +215,7 @@ public class LSPServerStatusWidget implements StatusBarWidget {
                 Messages.showInfoMessage(connectedFiles.toString(), "Connected Files");
             }
         }
+        */
 
         @Override
         public String getTooltipText() {
