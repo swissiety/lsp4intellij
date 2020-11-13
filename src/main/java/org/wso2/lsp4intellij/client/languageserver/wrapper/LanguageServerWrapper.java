@@ -72,6 +72,7 @@ import static org.wso2.lsp4intellij.requests.Timeout.getTimeout;
 import static org.wso2.lsp4intellij.requests.Timeouts.INIT;
 import static org.wso2.lsp4intellij.requests.Timeouts.SHUTDOWN;
 import static org.wso2.lsp4intellij.utils.ApplicationUtils.invokeLater;
+import static org.wso2.lsp4intellij.utils.ApplicationUtils.pool;
 import static org.wso2.lsp4intellij.utils.FileUtils.*;
 
 /**
@@ -224,62 +225,64 @@ public class LanguageServerWrapper {
         }
 
         if (initializeFuture == null) {
-            start();
             synchronized (editorsWaitingToConnect) {
                 editorsWaitingToConnect.add(editor);
             }
-        } else {
-            // runnables are getting chained/queued and executed even when initializeFuture is already done
-            initializeFuture.thenRun(() -> {
-                if (connectedEditors.containsKey(uri)) {
-                    return;
-                }
-                final ServerCapabilities capabilities = getServerCapabilities();
-                try {
-                    Either<TextDocumentSyncKind, TextDocumentSyncOptions> syncOptions = capabilities.getTextDocumentSync();
-                    if (syncOptions != null) {
-                        //Todo - Implement
-                        //  SelectionListenerImpl selectionListener = new SelectionListenerImpl();
-                        DocumentListenerImpl documentListener = new DocumentListenerImpl();
-                        EditorMouseListenerImpl mouseListener = new EditorMouseListenerImpl();
-                        EditorMouseMotionListenerImpl mouseMotionListener = new EditorMouseMotionListenerImpl();
-                        LSPCaretListenerImpl caretListener = new LSPCaretListenerImpl();
+            start();
+            return;
+        }
 
-                        ServerOptions serverOptions = new ServerOptions(capabilities);
-                        EditorEventManager manager;
-                        if (extManager != null) {
-                            manager = extManager.getExtendedEditorEventManagerFor(editor, documentListener,
-                                    mouseListener, mouseMotionListener, caretListener, requestManager, serverOptions,
-                                    this);
-                            if (manager == null) {
-                                manager = new EditorEventManager(editor, documentListener, mouseListener,
-                                        mouseMotionListener, caretListener,
-                                        requestManager, serverOptions, this);
-                            }
-                        } else {
+        // runnables are getting chained/queued and executed even when initializeFuture is already done
+
+        if (connectedEditors.containsKey(uri)) {
+            return;
+        }
+        final ServerCapabilities capabilities = getServerCapabilities();
+        try {
+            if (capabilities != null) {
+                Either<TextDocumentSyncKind, TextDocumentSyncOptions> syncOptions = capabilities.getTextDocumentSync();
+                if (syncOptions != null) {
+                    //Todo - Implement
+                    //  SelectionListenerImpl selectionListener = new SelectionListenerImpl();
+                    DocumentListenerImpl documentListener = new DocumentListenerImpl();
+                    EditorMouseListenerImpl mouseListener = new EditorMouseListenerImpl();
+                    EditorMouseMotionListenerImpl mouseMotionListener = new EditorMouseMotionListenerImpl();
+                    LSPCaretListenerImpl caretListener = new LSPCaretListenerImpl();
+
+                    ServerOptions serverOptions = new ServerOptions(capabilities);
+                    EditorEventManager manager;
+                    if (extManager != null) {
+                        manager = extManager.getExtendedEditorEventManagerFor(editor, documentListener,
+                                mouseListener, mouseMotionListener, caretListener, requestManager, serverOptions,
+                                this);
+                        if (manager == null) {
                             manager = new EditorEventManager(editor, documentListener, mouseListener,
                                     mouseMotionListener, caretListener,
                                     requestManager, serverOptions, this);
                         }
-                        // selectionListener.setManager(manager);
-                        documentListener.setManager(manager);
-                        mouseListener.setManager(manager);
-                        mouseMotionListener.setManager(manager);
-                        caretListener.setManager(manager);
-                        manager.registerListeners();
-                        connectedEditors.put(uri, manager);
-                        manager.documentOpened();
-                        LOG.info("Created a manager for " + uri);
-                        synchronized (editorsWaitingToConnect) {
-                            editorsWaitingToConnect.remove(editor);
-                        }
+                    } else {
+                        manager = new EditorEventManager(editor, documentListener, mouseListener,
+                                mouseMotionListener, caretListener,
+                                requestManager, serverOptions, this);
                     }
-                } catch (Exception e) {
-                    LOG.error(e);
+                    // selectionListener.setManager(manager);
+                    documentListener.setManager(manager);
+                    mouseListener.setManager(manager);
+                    mouseMotionListener.setManager(manager);
+                    caretListener.setManager(manager);
+                    manager.registerListeners();
+                    connectedEditors.put(uri, manager);
+                    manager.documentOpened();
+                    LOG.info("Created a manager for " + uri);
+                    synchronized (editorsWaitingToConnect) {
+                        editorsWaitingToConnect.remove(editor);
+                    }
                 }
-            });
-
+            }
+        } catch (Exception e) {
+            LOG.error(e);
         }
+
     }
 
     /* cleanup if underlying connection e.g. the socket failed */
@@ -596,10 +599,12 @@ public class LanguageServerWrapper {
      */
     public void restart() {
         if (isRestartable()) {
-            start();
-            alreadyShownCrash = false;
-            alreadyShownTimeout = false;
-            reloadEditors(project);
+            pool(()->{
+                start();
+                alreadyShownCrash = false;
+                alreadyShownTimeout = false;
+                reloadEditors(project);
+            });
         }
     }
 
