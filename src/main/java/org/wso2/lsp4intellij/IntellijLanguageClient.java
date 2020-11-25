@@ -54,7 +54,6 @@ import org.wso2.lsp4intellij.utils.FileUtils;
 import java.io.File;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Predicate;
 
 import static org.wso2.lsp4intellij.utils.ApplicationUtils.pool;
 import static org.wso2.lsp4intellij.utils.FileUtils.reloadAllEditors;
@@ -68,8 +67,13 @@ public final class IntellijLanguageClient implements Disposable {
     private final Map<String, Set<LanguageServerWrapper>> projectToLanguageWrappers = new ConcurrentHashMap<>();
     private final Map<Pair<String, String>, LanguageServerDefinition> extToServerDefinition = new ConcurrentHashMap<>();
     private final Map<String, LSPExtensionManager> extToExtManager = new ConcurrentHashMap<>();
-    private final Predicate<LanguageServerWrapper> RUNNING = (s) -> s.getStatus() != ServerStatus.STOPPED;
     private List<Object> configParams;
+
+    public void reset(){
+        dispose();
+        extToServerDefinition.clear();
+        extToExtManager.clear();
+    }
 
     public void init() {
         try {
@@ -84,9 +88,16 @@ public final class IntellijLanguageClient implements Disposable {
             ApplicationManager.getApplication().getMessageBus().connect().subscribe(AppTopics.FILE_DOCUMENT_SYNC,
                     new LSPFileDocumentManagerListener());
 
+            /*
+            // TODO: change back to old action if plugin is unloaded
+            final ActionManager actionMgr = ActionManager.getInstance();
+            actionMgr.replaceAction("GotoDeclaration", actionMgr.getAction("LSPGotoDeclaration") );
+            actionMgr.replaceAction("GotoImplementation", new LSPGotoDeclarationAction() );
+            actionMgr.replaceAction("GotoTypeDeclaration", new LSPGotoDeclarationAction() );
+*/
             // in case if JVM forcefully exit.
             Runtime.getRuntime().addShutdownHook(new Thread(() -> projectToLanguageWrappers.values().stream()
-                    .flatMap(Collection::stream).filter(RUNNING).forEach(s -> s.stop(true))));
+                    .flatMap(Collection::stream).filter((s1) -> s1.getStatus() != ServerStatus.STOPPED).forEach(s -> s.stop(true))));
 
             LOG.info("Intellij Language Client initialized successfully");
         } catch (Exception e) {
@@ -98,6 +109,10 @@ public final class IntellijLanguageClient implements Disposable {
      * Use it to initialize the server connection for the given project (useful if no editor is launched)
      */
     public void initProjectConnections(@NotNull Project project) {
+
+        // todo: connect via messagebus
+        // FileEditorManager.getInstance(project).addFileEditorManagerListener(new LspUIEditorListener());
+
         String projectStr = FileUtils.projectToUri(project);
         // find serverdefinition keys for this project and try to start a wrapper
         extToServerDefinition.entrySet().stream().filter((e) -> e.getKey().getRight().equals(projectStr)).forEach(entry -> {
