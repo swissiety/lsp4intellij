@@ -151,7 +151,7 @@ public class DocumentUtils {
                 String lineText = doc.getText(DocumentUtil.getLineTextRange(doc, line));
 
                 String lineTextForPosition = !lineText.isEmpty() ?
-                        lineText.substring(0, min(lineText.length(), pos.getCharacter())) :
+                        lineText.substring(0, Math.max( 0, min(lineText.length(), pos.getCharacter()))) :
                         "";
                 int tabs = StringUtil.countChars(lineTextForPosition, '\t');
                 int tabSize = getTabSize(editor);
