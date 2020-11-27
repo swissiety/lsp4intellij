@@ -150,9 +150,8 @@ public class DocumentUtils {
                 int line = Math.max(0, Math.min(pos.getLine(), doc.getLineCount()-1));
                 String lineText = doc.getText(DocumentUtil.getLineTextRange(doc, line));
 
-                String lineTextForPosition = !lineText.isEmpty() ?
-                        lineText.substring(0, Math.max( 0, min(lineText.length(), pos.getCharacter()))) :
-                        "";
+                final int endCharInLine = Math.max(0, min(lineText.length(), pos.getCharacter()));
+                String lineTextForPosition = endCharInLine > 0 ? lineText.substring(0, endCharInLine) : "";
                 int tabs = StringUtil.countChars(lineTextForPosition, '\t');
                 int tabSize = getTabSize(editor);
                 int column = tabs * tabSize - tabs + lineTextForPosition.length();
