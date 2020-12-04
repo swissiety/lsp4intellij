@@ -153,7 +153,8 @@ public class LSPServerStatusWidget implements StatusBarWidget {
     @NotNull
     @Override
     public String ID() {
-        return projectName != null && ext != null ? projectName + "_" + ext : "anonymous";
+        // ms: widget names are intellij application global -> reloading the configuration -> restarting connections + async -> can remove the wrong (the new generated instead of the old) widget -> hashcode
+        return projectName != null && ext != null ? projectName + "_" + ext +"#"+ hashCode() : "anonymous"+"#"+ hashCode() ;
     }
 
     private class IconPresentation implements StatusBarWidget.IconPresentation {
