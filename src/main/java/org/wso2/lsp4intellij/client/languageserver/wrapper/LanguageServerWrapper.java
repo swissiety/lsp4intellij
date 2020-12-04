@@ -250,21 +250,19 @@ public class LanguageServerWrapper {
                     LSPCaretListenerImpl caretListener = new LSPCaretListenerImpl();
 
                     ServerOptions serverOptions = new ServerOptions(capabilities);
-                    EditorEventManager manager;
+                    EditorEventManager manager = null;
                     if (extManager != null) {
                         manager = extManager.getExtendedEditorEventManagerFor(editor, documentListener,
                                 mouseListener, mouseMotionListener, caretListener, requestManager, serverOptions,
                                 this);
-                        if (manager == null) {
-                            manager = new EditorEventManager(editor, documentListener, mouseListener,
-                                    mouseMotionListener, caretListener,
-                                    requestManager, serverOptions, this);
-                        }
-                    } else {
+                    }
+
+                    if (manager == null) {
                         manager = new EditorEventManager(editor, documentListener, mouseListener,
                                 mouseMotionListener, caretListener,
                                 requestManager, serverOptions, this);
                     }
+
                     // selectionListener.setManager(manager);
                     documentListener.setManager(manager);
                     mouseListener.setManager(manager);
