@@ -1,0 +1,4 @@
+[submodule "lib/lsp4intellij"]
+	path = lib/lsp4intellij
+	url = https://github.com/swissiety/lsp4intellij.git
+
